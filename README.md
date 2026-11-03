@@ -33,7 +33,7 @@ Dominio sin dependencias de React, Tauri, FFmpeg ni proveedores IA. Nunca se env
 Requisitos: Node 22, pnpm 9.15, toolchain Rust y dependencias del sistema para Tauri 2. FFmpeg/FFprobe se instalan por separado para medios/exportación. Python/Whisper son opcionales y no se descargan sin permiso.
 
 ```sh
-pnpm install --frozen-lockfile
+pnpm install
 pnpm typecheck
 pnpm web:build
 cargo test --workspace
