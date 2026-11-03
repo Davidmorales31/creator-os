@@ -1,4 +1,4 @@
-import { invoke } from "@tauri-apps/api/core";
+import { convertFileSrc, invoke } from "@tauri-apps/api/core";
 import { open } from "@tauri-apps/plugin-dialog";
 
 export type MediaKind = "video" | "audio" | "image";
@@ -48,6 +48,11 @@ export async function listProjectMedia(projectId: string): Promise<MediaAsset[]>
   return invoke<MediaAsset[]>("list_project_media", { projectId });
 }
 
+export async function prepareMediaPreview(projectId: string, assetId: string): Promise<string> {
+  const asset = await invoke<MediaAsset>("prepare_media_preview", { projectId, assetId });
+  return convertFileSrc(asset.sourcePath);
+}
+
 export function formatBytes(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`;
   const units = ["KB", "MB", "GB", "TB"];
@@ -61,7 +66,7 @@ export function formatBytes(bytes: number): string {
 }
 
 export function formatDuration(seconds: number | null): string {
-  if (seconds === null) return "—";
+  if (seconds === null || !Number.isFinite(seconds)) return "—";
   const total = Math.max(0, Math.round(seconds));
   const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60);

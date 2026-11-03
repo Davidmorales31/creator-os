@@ -1,6 +1,8 @@
+mod media_preview;
 mod media_repository;
 mod project_repository;
 
+use media_preview::prepare_media_preview;
 use media_repository::{import_media, list_project_media};
 use project_repository::{create_project, list_recent_projects, open_project};
 
@@ -19,7 +21,8 @@ pub fn run() {
             list_recent_projects,
             open_project,
             import_media,
-            list_project_media
+            list_project_media,
+            prepare_media_preview
         ])
         .run(tauri::generate_context!())
         .expect("error while running Creator OS");

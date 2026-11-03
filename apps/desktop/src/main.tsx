@@ -1,4 +1,4 @@
-import React, { FormEvent, useEffect, useState } from "react";
+import React, { FormEvent, useEffect, useMemo, useState } from "react";
 import ReactDOM from "react-dom/client";
 import "@creator-os/ui/tokens.css";
 import "./styles.css";
@@ -19,15 +19,22 @@ import {
   pickMediaFiles,
   type MediaAsset,
 } from "./media";
+import { MediaPreview } from "./MediaPreview";
 
 function App() {
   const [recentProjects, setRecentProjects] = useState<ProjectSummary[]>([]);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
   const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
   const [projectName, setProjectName] = useState("");
   const [busy, setBusy] = useState(false);
   const [importing, setImporting] = useState(false);
   const [error, setError] = useState<CreatorCommandError | null>(null);
+
+  const selectedAsset = useMemo(
+    () => mediaAssets.find((asset) => asset.id === selectedAssetId) ?? null,
+    [mediaAssets, selectedAssetId],
+  );
 
   async function refreshRecentProjects() {
     try {
@@ -41,7 +48,9 @@ function App() {
   async function refreshMedia(projectId: string) {
     try {
       setError(null);
-      setMediaAssets(await listProjectMedia(projectId));
+      const assets = await listProjectMedia(projectId);
+      setMediaAssets(assets);
+      setSelectedAssetId((current) => (current && assets.some((asset) => asset.id === current) ? current : null));
     } catch (cause) {
       setError(normalizeCommandError(cause));
     }
@@ -52,6 +61,7 @@ function App() {
   }, []);
 
   useEffect(() => {
+    setSelectedAssetId(null);
     if (activeProject) {
       void refreshMedia(activeProject.id);
     } else {
@@ -102,10 +112,12 @@ function App() {
 
       setImporting(true);
       setError(null);
+      let lastImported: MediaAsset | null = null;
       for (const sourcePath of paths) {
-        await importMedia(activeProject.id, sourcePath);
+        lastImported = await importMedia(activeProject.id, sourcePath);
       }
       await refreshMedia(activeProject.id);
+      if (lastImported) setSelectedAssetId(lastImported.id);
     } catch (cause) {
       setError(normalizeCommandError(cause));
     } finally {
@@ -117,7 +129,7 @@ function App() {
     <main className="app-shell">
       <header className="topbar">
         <div>
-          <span className="eyebrow">Creator OS v0.2</span>
+          <span className="eyebrow">Creator OS v0.3</span>
           <h1>Projects</h1>
         </div>
         <span className="local-badge">● Local-first</span>
@@ -222,19 +234,27 @@ function App() {
           </button>
         </div>
 
+        <MediaPreview projectId={activeProject?.id ?? null} asset={selectedAsset} />
+
         {!activeProject ? (
-          <div className="panel empty-list">Open a project before importing media.</div>
+          <div className="panel empty-list media-library-message">Open a project before importing media.</div>
         ) : mediaAssets.length === 0 ? (
-          <div className="panel empty-list">
+          <div className="panel empty-list media-library-message">
             No media yet. Files stay in their original location; Creator OS stores references and metadata only.
           </div>
         ) : (
-          <div className="media-table panel">
+          <div className="media-table panel" aria-label="Project media library">
             <div className="media-row media-head" aria-hidden="true">
               <span>File</span><span>Type</span><span>Duration</span><span>Details</span><span>Size</span>
             </div>
             {mediaAssets.map((asset) => (
-              <div className="media-row" key={asset.id}>
+              <button
+                type="button"
+                className={`media-row media-item${asset.id === selectedAssetId ? " media-item-selected" : ""}`}
+                key={asset.id}
+                onClick={() => setSelectedAssetId(asset.id)}
+                aria-pressed={asset.id === selectedAssetId}
+              >
                 <div className="media-name">
                   <span className={`media-kind media-kind-${asset.kind}`}>{asset.kind.slice(0, 1).toUpperCase()}</span>
                   <span><strong>{asset.fileName}</strong><small title={asset.sourcePath}>{asset.sourcePath}</small></span>
@@ -243,7 +263,7 @@ function App() {
                 <span>{formatDuration(asset.durationSeconds)}</span>
                 <span>{asset.width && asset.height ? `${asset.width}×${asset.height}` : asset.audioCodec ?? asset.videoCodec ?? "—"}{asset.fps ? ` · ${asset.fps.toFixed(2)} fps` : ""}</span>
                 <span>{formatBytes(asset.fileSizeBytes)}</span>
-              </div>
+              </button>
             ))}
           </div>
         )}
