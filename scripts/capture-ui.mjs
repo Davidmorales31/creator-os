@@ -95,7 +95,7 @@ await page.screenshot({ path: path.join(outputDir, "02-editor-light.png"), fullP
 await page.getByRole("button", { name: "Activar modo oscuro" }).click();
 await page.screenshot({ path: path.join(outputDir, "03-editor-dark.png"), fullPage: true });
 
-await page.getByRole("button", { name: "Inicio" }).click();
+await page.getByRole("button", { name: "Inicio", exact: true }).click();
 await page.screenshot({ path: path.join(outputDir, "04-home-dark.png"), fullPage: true });
 
 assert.deepEqual(errors, [], "No page exceptions expected");
