@@ -1,7 +1,7 @@
 use std::sync::Mutex;
 
 use creator_os_media_core::MediaKind;
-use creator_os_timeline_core::{Clip, Timeline, TimelineOperation, TrackKind, TimelineError};
+use creator_os_timeline_core::{Clip, Timeline, TimelineError, TimelineOperation, TrackKind};
 use serde::{Deserialize, Serialize};
 use tauri::{AppHandle, State};
 
@@ -19,7 +19,10 @@ pub struct TimelineCommandError {
 
 impl TimelineCommandError {
     fn new(code: &'static str, message: impl Into<String>) -> Self {
-        Self { code, message: message.into() }
+        Self {
+            code,
+            message: message.into(),
+        }
     }
 }
 
@@ -57,15 +60,24 @@ fn validate_asset_for_add(
         .map_err(|error| TimelineCommandError::new(error.code, error.message))?
         .list(project_id)
         .map_err(|error| TimelineCommandError::new(error.code, error.message))?;
-    let asset = assets.iter()
+    let asset = assets
+        .iter()
         .find(|asset| asset.id == clip.asset_id)
-        .ok_or_else(|| TimelineCommandError::new("media_asset_not_found", "Import the media asset before adding it to the timeline"))?;
+        .ok_or_else(|| {
+            TimelineCommandError::new(
+                "media_asset_not_found",
+                "Import the media asset before adding it to the timeline",
+            )
+        })?;
     let kind = match asset.kind {
         MediaKind::Video | MediaKind::Image => TrackKind::Video,
         MediaKind::Audio => TrackKind::Audio,
     };
     if kind != clip.kind {
-        return Err(TimelineCommandError::new("incompatible_media_kind", "Clip kind must match the registered media asset"));
+        return Err(TimelineCommandError::new(
+            "incompatible_media_kind",
+            "Clip kind must match the registered media asset",
+        ));
     }
     let source_length = match asset.kind {
         MediaKind::Image => None,
@@ -76,14 +88,27 @@ fn validate_asset_for_add(
         }),
     };
     if let Some(max) = source_length {
-        if clip.source_in_frame.checked_add(clip.duration_frames).is_none_or(|end| end > max) {
-            return Err(TimelineCommandError::new("invalid_clip_range", "Clip extends beyond the source media"));
+        if clip
+            .source_in_frame
+            .checked_add(clip.duration_frames)
+            .is_none_or(|end| end > max)
+        {
+            return Err(TimelineCommandError::new(
+                "invalid_clip_range",
+                "Clip extends beyond the source media",
+            ));
         }
     } else if asset.kind != MediaKind::Image {
-        return Err(TimelineCommandError::new("invalid_media_duration", "Source media needs a valid duration"));
+        return Err(TimelineCommandError::new(
+            "invalid_media_duration",
+            "Source media needs a valid duration",
+        ));
     }
     if clip.source_length_frames != source_length {
-        return Err(TimelineCommandError::new("invalid_source_length", "Clip source duration does not match catalog metadata"));
+        return Err(TimelineCommandError::new(
+            "invalid_source_length",
+            "Clip source duration does not match catalog metadata",
+        ));
     }
     Ok(())
 }
@@ -92,7 +117,8 @@ fn validate_asset_for_add(
 pub fn get_timeline(app: AppHandle, project_id: String) -> Result<Timeline, TimelineCommandError> {
     let repo = FsProjectRepository::from_app(&app)
         .map_err(|error| TimelineCommandError::new(error.code, error.message))?;
-    let project = repo.open(&project_id)
+    let project = repo
+        .open(&project_id)
         .map_err(|error| TimelineCommandError::new(error.code, error.message))?;
     Ok(project.timeline)
 }
@@ -106,11 +132,16 @@ pub fn edit_timeline(
     command: TimelineEdit,
 ) -> Result<Timeline, TimelineCommandError> {
     // Serializes the read/validate/write transaction across all Tauri invocations.
-    let _guard = state.0.lock()
-        .map_err(|_| TimelineCommandError::new("timeline_lock_failed", "Could not lock timeline for editing"))?;
+    let _guard = state.0.lock().map_err(|_| {
+        TimelineCommandError::new(
+            "timeline_lock_failed",
+            "Could not lock timeline for editing",
+        )
+    })?;
     let repo = FsProjectRepository::from_app(&app)
         .map_err(|error| TimelineCommandError::new(error.code, error.message))?;
-    let mut project = repo.open(&project_id)
+    let mut project = repo
+        .open(&project_id)
         .map_err(|error| TimelineCommandError::new(error.code, error.message))?;
     match command {
         TimelineEdit::Apply { operation } => {
