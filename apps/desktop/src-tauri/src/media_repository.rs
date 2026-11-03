@@ -1,6 +1,5 @@
 use std::{
-    env,
-    fs,
+    env, fs,
     path::{Path, PathBuf},
     process::Command,
 };
@@ -68,7 +67,11 @@ impl FsMediaRepository {
         })
     }
 
-    pub fn import(&self, project_id: &str, source_path: &str) -> Result<MediaAsset, MediaCommandError> {
+    pub fn import(
+        &self,
+        project_id: &str,
+        source_path: &str,
+    ) -> Result<MediaAsset, MediaCommandError> {
         let project_id = validate_project_id(project_id)?;
         self.ensure_project_exists(&project_id)?;
 
@@ -102,7 +105,9 @@ impl FsMediaRepository {
         let file_name = canonical
             .file_name()
             .map(|value| value.to_string_lossy().into_owned())
-            .ok_or_else(|| MediaCommandError::new("invalid_media_path", "Media path has no file name"))?;
+            .ok_or_else(|| {
+                MediaCommandError::new("invalid_media_path", "Media path has no file name")
+            })?;
 
         let asset = MediaAsset::from_probe(
             Uuid::new_v4().to_string(),
@@ -148,7 +153,11 @@ impl FsMediaRepository {
         Ok(serde_json::from_str(&raw)?)
     }
 
-    fn save_catalog(&self, project_id: &str, catalog: &MediaCatalog) -> Result<(), MediaCommandError> {
+    fn save_catalog(
+        &self,
+        project_id: &str,
+        catalog: &MediaCatalog,
+    ) -> Result<(), MediaCommandError> {
         let media_dir = self.projects_root.join(project_id).join(MEDIA_DIR);
         fs::create_dir_all(&media_dir)?;
 
@@ -390,8 +399,8 @@ mod tests {
           "format": {"duration":"0.040"}
         }"#;
 
-        let probe = parse_ffprobe_output(Path::new("thumbnail.png"), 100, raw)
-            .expect("image should map");
+        let probe =
+            parse_ffprobe_output(Path::new("thumbnail.png"), 100, raw).expect("image should map");
 
         assert_eq!(probe.kind, MediaKind::Image);
         assert_eq!(probe.duration_seconds, None);
