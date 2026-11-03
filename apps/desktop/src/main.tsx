@@ -7,40 +7,193 @@ import { createProject, listRecentProjects, normalizeCommandError, openProject, 
 import { formatDuration, formatFileSize, importMedia, listProjectMedia, type MediaAsset } from "./media";
 import { MediaPlayer } from "./player";
 
+type View = "projects" | "workspace";
+type Theme = "light" | "dark";
+
 function App() {
-  const [recentProjects, setRecentProjects] = useState<ProjectSummary[]>([]); const [activeProject, setActiveProject] = useState<Project | null>(null);
-  const [projectName, setProjectName] = useState(""); const [busy, setBusy] = useState(false); const [mediaBusy, setMediaBusy] = useState(false);
-  const [error, setError] = useState<CreatorCommandError | null>(null); const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]); const [selectedMedia, setSelectedMedia] = useState<MediaAsset | null>(null);
-  async function refreshRecentProjects() { try { setError(null); setRecentProjects(await listRecentProjects()); } catch (cause) { setError(normalizeCommandError(cause)); } }
-  async function refreshMedia(projectId: string) { try { setError(null); const assets = await listProjectMedia(projectId); setMediaAssets(assets); setSelectedMedia((current) => current ? assets.find((asset) => asset.id === current.id) ?? assets.find((asset) => asset.kind === "video") ?? assets[0] ?? null : assets.find((asset) => asset.kind === "video") ?? assets[0] ?? null); } catch (cause) { setError(normalizeCommandError(cause)); } }
+  const [view, setView] = useState<View>("projects");
+  const [theme, setTheme] = useState<Theme>("light");
+  const [recentProjects, setRecentProjects] = useState<ProjectSummary[]>([]);
+  const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const [projectName, setProjectName] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [mediaBusy, setMediaBusy] = useState(false);
+  const [error, setError] = useState<CreatorCommandError | null>(null);
+  const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
+  const [selectedMedia, setSelectedMedia] = useState<MediaAsset | null>(null);
+
+  useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
+
+  async function refreshRecentProjects() {
+    try { setError(null); setRecentProjects(await listRecentProjects()); }
+    catch (cause) { setError(normalizeCommandError(cause)); }
+  }
+  async function refreshMedia(projectId: string) {
+    try {
+      setError(null);
+      const assets = await listProjectMedia(projectId);
+      setMediaAssets(assets);
+      setSelectedMedia((current) => {
+        if (current) {
+          const stillPresent = assets.find((asset) => asset.id === current.id);
+          if (stillPresent) return stillPresent;
+        }
+        return assets.find((asset) => asset.kind === "video") ?? assets[0] ?? null;
+      });
+    } catch (cause) { setError(normalizeCommandError(cause)); }
+  }
   useEffect(() => { void refreshRecentProjects(); }, []);
-  async function activateProject(project: Project) { setActiveProject(project); setSelectedMedia(null); setMediaAssets([]); await refreshMedia(project.id); }
-  async function handleCreateProject(event: FormEvent) { event.preventDefault(); const name = projectName.trim(); if (!name) { setError({ code: "invalid_project", message: "Give the project a name first." }); return; } try { setBusy(true); setError(null); const project = await createProject(name); setProjectName(""); await activateProject(project); await refreshRecentProjects(); } catch (cause) { setError(normalizeCommandError(cause)); } finally { setBusy(false); } }
-  async function handleOpenProject(projectId: string) { try { setBusy(true); setError(null); await activateProject(await openProject(projectId)); } catch (cause) { setError(normalizeCommandError(cause)); } finally { setBusy(false); } }
+
+  async function activateProject(project: Project) {
+    setActiveProject(project);
+    setSelectedMedia(null);
+    setMediaAssets([]);
+    setView("workspace");
+    await refreshMedia(project.id);
+  }
+
+  async function handleCreateProject(event: FormEvent) {
+    event.preventDefault();
+    const name = projectName.trim();
+    if (!name) {
+      setError({ code: "invalid_project", message: "Escribe un nombre para el proyecto." });
+      return;
+    }
+    try {
+      setBusy(true); setError(null);
+      const project = await createProject(name);
+      setProjectName("");
+      await activateProject(project);
+      await refreshRecentProjects();
+    } catch (cause) { setError(normalizeCommandError(cause)); }
+    finally { setBusy(false); }
+  }
+
+  async function handleOpenProject(projectId: string) {
+    try {
+      setBusy(true); setError(null);
+      await activateProject(await openProject(projectId));
+    } catch (cause) { setError(normalizeCommandError(cause)); }
+    finally { setBusy(false); }
+  }
+
   async function handleImportMedia() {
     if (!activeProject) return;
     try {
-      const selected = await open({ multiple: true, directory: false, filters: [{ name: "Media", extensions: ["mp4","mov","mkv","webm","m4v","avi","mp3","wav","m4a","aac","flac","ogg","jpg","jpeg","png","webp","bmp","tif","tiff","avif","heic"] }] });
-      if (!selected) return; const paths = Array.isArray(selected) ? selected : [selected]; if (paths.length === 0) return;
-      setMediaBusy(true); setError(null); let lastImported: MediaAsset | null = null;
+      const selected = await open({
+        multiple: true, directory: false,
+        filters: [{ name: "Media", extensions: ["mp4","mov","mkv","webm","m4v","avi","mp3","wav","m4a","aac","flac","ogg","jpg","jpeg","png","webp","bmp","tif","tiff","avif","heic"] }]
+      });
+      if (!selected) return;
+      const paths = Array.isArray(selected) ? selected : [selected];
+      if (paths.length === 0) return;
+      setMediaBusy(true); setError(null);
+      let lastImported: MediaAsset | null = null;
       for (const sourcePath of paths) lastImported = await importMedia(activeProject.id, sourcePath);
-      await refreshMedia(activeProject.id); if (lastImported) setSelectedMedia(lastImported);
-    } catch (cause) { setError(normalizeCommandError(cause)); } finally { setMediaBusy(false); }
+      await refreshMedia(activeProject.id);
+      if (lastImported) setSelectedMedia(lastImported);
+    } catch (cause) { setError(normalizeCommandError(cause)); }
+    finally { setMediaBusy(false); }
   }
-  return <main className="app-shell">
-    <header className="topbar"><div><span className="eyebrow">Creator OS v0.3</span><h1>Projects</h1></div><span className="local-badge">● Local-first</span></header>
-    {error && <div className="error-banner" role="alert"><strong>{error.code}</strong><span>{error.message}</span></div>}
-    <section className="workspace-grid">
-      <div className="panel create-panel"><span className="eyebrow">New project</span><h2>Start a Creator OS project</h2><p>Projects are stored locally with a versioned manifest owned by Creator OS.</p><form onSubmit={handleCreateProject}><label htmlFor="project-name">Project name</label><input id="project-name" value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Interstellar — Resumen" disabled={busy} autoFocus/><button type="submit" disabled={busy}>{busy ? "Working…" : "Create project"}</button></form></div>
-      <div className="panel active-panel"><span className="eyebrow">Active project</span>{activeProject ? <><h2>{activeProject.name}</h2><dl className="project-meta"><div><dt>Schema</dt><dd>v{activeProject.schemaVersion}</dd></div><div><dt>Canvas</dt><dd>{activeProject.settings.width}×{activeProject.settings.height}</dd></div><div><dt>FPS</dt><dd>{activeProject.settings.fps}</dd></div></dl><p className="project-id">{activeProject.id}</p></> : <div className="empty-state"><h2>No project open</h2><p>Create one or reopen a recent project.</p></div>}</div>
-    </section>
-    {activeProject && <section className="creator-workspace" aria-label="Creator workspace">
-      <MediaPlayer projectId={activeProject.id} asset={selectedMedia}/>
-      <section className="panel media-panel" aria-labelledby="media-title"><div className="section-heading"><div><span className="eyebrow">Project assets</span><h2 id="media-title">Media</h2></div><button type="button" className="secondary-button" onClick={() => void handleImportMedia()} disabled={mediaBusy}>{mediaBusy ? "Importing…" : "Import media"}</button></div>
-      {mediaAssets.length === 0 ? <div className="media-empty"><strong>No media yet</strong><span>Import video, audio, or images. Source files stay where they are.</span></div> : <div className="media-list">{mediaAssets.map((asset) => { const resolution = asset.width && asset.height ? `${asset.width}×${asset.height}` : "—"; const codec = asset.videoCodec ?? asset.audioCodec ?? "—"; const selected = selectedMedia?.id === asset.id; return <button type="button" className={`media-row${selected ? " media-row-selected" : ""}`} key={asset.id} onClick={() => setSelectedMedia(asset)}><span className={`media-kind media-kind-${asset.kind}`}>{asset.kind.slice(0, 1).toUpperCase()}</span><span className="media-copy"><strong title={asset.fileName}>{asset.fileName}</strong><small>{asset.kind} · {formatDuration(asset.durationSeconds)} · {formatFileSize(asset.fileSizeBytes)}</small></span><span className="media-tech"><small>{resolution}</small><small>{asset.fps ? `${asset.fps.toFixed(2)} fps` : codec}</small></span></button>; })}</div>}
-      </section>
-    </section>}
-    <section className="recent-section" aria-labelledby="recent-title"><div className="section-heading"><div><span className="eyebrow">Local workspace</span><h2 id="recent-title">Recent projects</h2></div><button className="secondary-button" onClick={() => void refreshRecentProjects()} disabled={busy}>Refresh</button></div>{recentProjects.length === 0 ? <div className="panel empty-list">Your first project will appear here.</div> : <div className="project-grid">{recentProjects.map((project) => <button type="button" className="project-card" key={project.id} onClick={() => void handleOpenProject(project.id)} disabled={busy}><span className="project-icon">CO</span><span className="project-card-copy"><strong>{project.name}</strong><small>Updated {new Date(project.updatedAt).toLocaleString()}</small></span><span aria-hidden="true">→</span></button>)}</div>}</section>
-  </main>;
+
+  return (
+    <div className="desktop-shell">
+      <aside className="app-sidebar" aria-label="Navegación principal">
+        <div className="brand-row">
+          <span className="brand-mark" aria-hidden="true">C</span>
+          <span className="brand-copy"><strong>Creator OS</strong><small>Creator workspace</small></span>
+        </div>
+        <div className="nav-group">
+          <span className="nav-caption">WORKSPACE</span>
+          <button type="button" className={`nav-item ${view === "projects" ? "nav-item-active" : ""}`} aria-current={view === "projects" ? "page" : undefined} onClick={() => setView("projects")}>
+            <span className="nav-symbol" aria-hidden="true">▦</span> Proyectos
+          </button>
+          <button type="button" className={`nav-item ${view === "workspace" ? "nav-item-active" : ""}`} aria-current={view === "workspace" ? "page" : undefined} onClick={() => setView("workspace")} disabled={!activeProject}>
+            <span className="nav-symbol" aria-hidden="true">▤</span> Estudio
+          </button>
+          <span className="nav-caption nav-caption-secondary">PRÓXIMAMENTE</span>
+          <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">◈</span> Guiones IA <span className="nav-soon">Pronto</span></span>
+          <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">⇧</span> Publicaciones <span className="nav-soon">Pronto</span></span>
+        </div>
+        <div className="sidebar-footer">
+          <div className="privacy-line"><span className="status-dot" aria-hidden="true" /> Local-first · Tus archivos</div>
+          <button type="button" className="theme-button" onClick={() => setTheme((value) => value === "light" ? "dark" : "light")} aria-label={theme === "light" ? "Activar modo oscuro" : "Activar modo claro"}>
+            <span aria-hidden="true">{theme === "light" ? "☾" : "☀"}</span> {theme === "light" ? "Modo oscuro" : "Modo claro"}
+          </button>
+          <span className="version-label">CREATOR OS · v0.3</span>
+        </div>
+      </aside>
+
+      <main className="app-main">
+        <header className="app-toolbar">
+          <div className="toolbar-breadcrumb"><span>Creator OS</span><span className="breadcrumb-divider">/</span><strong>{view === "workspace" ? activeProject?.name ?? "Estudio" : "Proyectos"}</strong></div>
+          <div className="toolbar-actions">
+            <span className="toolbar-platform">Desktop · Local</span>
+            {view === "workspace" && <button type="button" className="button button-primary" onClick={() => void handleImportMedia()} disabled={!activeProject || mediaBusy}>{mediaBusy ? "Importando…" : "+ Importar medios"}</button>}
+          </div>
+        </header>
+
+        {error && <div className="error-banner" role="alert"><strong>{error.code}</strong><span>{error.message}</span><button type="button" className="error-dismiss" onClick={() => setError(null)} aria-label="Cerrar error">×</button></div>}
+
+        {view === "projects" ? (
+          <div className="content-scroll">
+            <div className="page-intro">
+              <span className="eyebrow">TU ESPACIO CREATIVO</span>
+              <h1>Mis proyectos<span className="title-point">.</span></h1>
+              <p>Todo lo que necesitas para crear, editar y publicar. En un solo lugar.</p>
+            </div>
+            <div className="projects-layout">
+              <section className="panel new-project-panel" aria-labelledby="new-project-title">
+                <span className="feature-icon" aria-hidden="true">＋</span>
+                <span className="eyebrow">EMPEZAR ALGO NUEVO</span>
+                <h2 id="new-project-title">Crea tu próxima historia</h2>
+                <p>Comienza con un proyecto local. Los videos originales se quedan donde están.</p>
+                <form onSubmit={handleCreateProject} className="new-project-form">
+                  <label htmlFor="project-name">Nombre del proyecto</label>
+                  <input id="project-name" value={projectName} onChange={(event) => setProjectName(event.target.value)} placeholder="Ej. Resumen de Interstellar" disabled={busy}/>
+                  <button type="submit" className="button button-primary button-wide" disabled={busy}>{busy ? "Creando…" : "＋ Crear proyecto"}</button>
+                </form>
+              </section>
+              <section className="panel recent-panel" aria-labelledby="recent-title">
+                <div className="section-heading"><div><span className="eyebrow">CONTINÚA CREANDO</span><h2 id="recent-title">Recientes</h2></div><button type="button" className="button button-ghost" onClick={() => void refreshRecentProjects()} disabled={busy}>Actualizar</button></div>
+                {recentProjects.length === 0 ? (
+                  <div className="empty-state"><span className="empty-glyph" aria-hidden="true">▦</span><strong>Aún no hay proyectos</strong><p>Crea tu primer proyecto para comenzar.</p></div>
+                ) : (
+                  <div className="recent-list">{recentProjects.map((project) => <button type="button" key={project.id} className="recent-item" onClick={() => void handleOpenProject(project.id)} disabled={busy}><span className="project-icon" aria-hidden="true">◧</span><span className="recent-copy"><strong>{project.name}</strong><small>{new Date(project.updatedAt).toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })}</small></span><span className="recent-arrow" aria-hidden="true">›</span></button>)}</div>
+                )}
+              </section>
+            </div>
+          </div>
+        ) : activeProject ? (
+          <div className="content-scroll workspace-page">
+            <div className="workspace-header"><div><span className="eyebrow">ESTUDIO / PROYECTO ACTIVO</span><h1>{activeProject.name}<span className="title-point">.</span></h1><p>Previsualiza tu material y prepara la siguiente edición.</p></div><span className="project-format">{activeProject.settings.width} × {activeProject.settings.height} · {activeProject.settings.fps} fps</span></div>
+            <div className="creator-workspace">
+              <MediaPlayer projectId={activeProject.id} asset={selectedMedia}/>
+              <section className="panel media-panel" aria-labelledby="media-title">
+                <div className="section-heading"><div><span className="eyebrow">BIBLIOTECA LOCAL</span><h2 id="media-title">Tus medios <span className="media-count">{mediaAssets.length}</span></h2></div></div>
+                {mediaAssets.length === 0 ? (
+                  <div className="media-empty"><span className="empty-glyph" aria-hidden="true">▣</span><strong>Importa tu primer video</strong><p>Sin duplicar archivos ni consumir espacio extra.</p><button type="button" className="button button-primary" onClick={() => void handleImportMedia()} disabled={mediaBusy}>{mediaBusy ? "Importando…" : "+ Importar medios"}</button></div>
+                ) : (
+                  <div className="media-list" role="group" aria-label="Archivos importados">
+                    {mediaAssets.map((asset) => {
+                      const selected = selectedMedia?.id === asset.id;
+                      return <button key={asset.id} type="button" className={`media-row ${selected ? "media-row-selected" : ""}`} aria-pressed={selected} onClick={() => setSelectedMedia(asset)}>
+                        <span className={`media-kind media-kind-${asset.kind}`} aria-hidden="true">{asset.kind === "video" ? "▶" : asset.kind === "audio" ? "♫" : "▧"}</span>
+                        <span className="media-copy"><strong title={asset.fileName}>{asset.fileName}</strong><small>{formatDuration(asset.durationSeconds)} · {formatFileSize(asset.fileSizeBytes)}</small></span>
+                        <span className="media-tech">{asset.width && asset.height ? `${asset.width}×${asset.height}` : asset.kind}</span>
+                      </button>;
+                    })}
+                  </div>
+                )}
+                <div className="media-panel-footer">Los archivos permanecen en su ubicación original.</div>
+              </section>
+            </div>
+            <div className="workspace-hint"><span aria-hidden="true">⌘</span> Selecciona un video y usa Espacio para reproducir; ← → para avanzar o retroceder 5 s.</div>
+          </div>
+        ) : null}
+      </main>
+    </div>
+  );
 }
-ReactDOM.createRoot(document.getElementById("root")!).render(<React.StrictMode><App/></React.StrictMode>);
+
+ReactDOM.createRoot(document.getElementById("root")!).render(<React.StrictMode><App /></React.StrictMode>);
