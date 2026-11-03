@@ -189,7 +189,7 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
       <div className="timeline-toolbar">
         <div><span className="eyebrow">EDICIÓN NO DESTRUCTIVA</span><h2>Timeline <span className="timeline-count">{timeline?.clips.length ?? 0} clips</span></h2></div>
         <div className="timeline-tools">
-          <button type="button" className={montageSession ? "secondary-button" : "button button-primary"}
+          <button type="button" className="secondary-button"
             onClick={montageSession ? onMontageStop : startMontage} disabled={!timeline || busy}
             aria-label={montageSession ? "Detener montaje" : "Reproducir montaje"}>
             {montageSession ? "■ Detener montaje" : "▶ Reproducir montaje"}
