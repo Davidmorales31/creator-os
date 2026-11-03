@@ -1,0 +1,13 @@
+{
+  "name": "creator-os",
+  "private": false,
+  "version": "0.0.1",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "dev": "pnpm --filter @creator-os/desktop tauri:dev",
+    "build": "pnpm --filter @creator-os/desktop tauri:build",
+    "web:dev": "pnpm --filter @creator-os/desktop dev",
+    "web:build": "pnpm --filter @creator-os/desktop build",
+    "typecheck": "pnpm -r typecheck"
+  }
+}

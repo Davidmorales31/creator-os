@@ -1,0 +1,8 @@
+{
+  "name": "@creator-os/ui",
+  "private": true,
+  "version": "0.0.1",
+  "exports": {
+    "./tokens.css": "./src/tokens.css"
+  }
+}
