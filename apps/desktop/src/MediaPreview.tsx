@@ -101,7 +101,7 @@ export function MediaPreview({ projectId, asset }: MediaPreviewProps) {
       } else if (event.code === "ArrowRight") {
         event.preventDefault();
         seekTo((mediaRef.current?.currentTime ?? 0) + 5);
-      } else if (event.code === "KeyF" && asset.kind === "video") {
+      } else if (event.code === "KeyF" && asset?.kind === "video") {
         event.preventDefault();
         setFit((value) => (value === "contain" ? "cover" : "contain"));
       }
