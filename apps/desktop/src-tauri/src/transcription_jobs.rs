@@ -360,8 +360,7 @@ pub fn start_transcription(
     }
 
     let target = transcripts.join(format!("{job_id}.json"));
-    let local = manager.inner().clone();
-    let worker = TranscriptionManager { inner: local };
+    let worker = manager.inner().clone();
     thread::spawn(move || {
         if let Ok(mut state) = worker.inner.lock() {
             if let Some(entry) = state.jobs.get_mut(&job_id) {
