@@ -219,16 +219,18 @@ function App() {
                 previewRequest={montage ? null : previewCommand} onSourceTimeChange={setPreviewSourceTime}
                 montageSession={montage}
                 onMontageFinished={(runId, index) => {
-                  setMontage((current) => {
-                    if (!current || current.runId !== runId || current.index !== index) return current;
-                    const nextIndex = current.index + 1;
-                    if (nextIndex >= current.plan.segments.length) return null;
-                    const next = current.plan.segments[nextIndex];
-                    const nextAsset = mediaAssets.find((candidate) => candidate.id === next.assetId && candidate.kind === "video");
-                    if (!nextAsset) { setError({ code: "montage_media_missing", message: "No se encuentra el siguiente video del montaje." }); return null; }
-                    setSelectedMedia(nextAsset);
-                    return { ...current, index: nextIndex };
-                  });
+                  if (!montage || montage.runId !== runId || montage.index !== index) return;
+                  const nextIndex = index + 1;
+                  if (nextIndex >= montage.plan.segments.length) { setMontage(null); return; }
+                  const next = montage.plan.segments[nextIndex];
+                  const nextAsset = mediaAssets.find((candidate) => candidate.id === next.assetId && candidate.kind === "video");
+                  if (!nextAsset) {
+                    setError({ code: "montage_media_missing", message: "No se encuentra el siguiente video del montaje." });
+                    setMontage(null);
+                    return;
+                  }
+                  setSelectedMedia(nextAsset);
+                  setMontage({ ...montage, index: nextIndex });
                 }}
                 onMontageError={(message) => { setError({ code: "montage_playback_failed", message }); setMontage(null); }} />
               <aside className="panel inspector-panel"><div className="section-heading"><div><span className="eyebrow">INSPECTOR</span><h2>Propiedades</h2></div></div>{selectedMedia ? <dl className="inspector-fields"><div><dt>Archivo</dt><dd title={selectedMedia.fileName}>{selectedMedia.fileName}</dd></div><div><dt>Tipo</dt><dd>{selectedMedia.kind}</dd></div><div><dt>Duración</dt><dd>{formatDuration(selectedMedia.durationSeconds)}</dd></div><div><dt>Resolución</dt><dd>{selectedMedia.width && selectedMedia.height ? `${selectedMedia.width} × ${selectedMedia.height}` : "—"}</dd></div><div><dt>FPS</dt><dd>{selectedMedia.fps?.toFixed(2) ?? "—"}</dd></div></dl> : <p>Selecciona un archivo para ver sus propiedades.</p>}</aside>
