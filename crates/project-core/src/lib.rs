@@ -1,6 +1,6 @@
+use creator_os_timeline_core::Timeline;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
-use creator_os_timeline_core::Timeline;
 
 pub const PROJECT_SCHEMA_VERSION: u32 = 2;
 
