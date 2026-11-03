@@ -215,3 +215,6 @@ button.nav-item:hover:not(:disabled) { background: var(--creator-surface-raised)
 @media(max-width:1000px){.quick-actions{grid-template-columns:repeat(3,minmax(0,1fr))}.toolbar-search{width:min(260px,32vw)}}
 @media(max-width:800px){.home-activity{grid-template-columns:1fr}.workspace-page .creator-workspace{grid-template-columns:1fr}.workspace-page .creator-workspace .media-panel{order:2}.workspace-page .creator-workspace .player-panel{order:1}.workspace-page .creator-workspace .inspector-panel{order:3;grid-column:auto}.toolbar-search{width:min(230px,30vw)}}
 @media(max-width:560px){.quick-actions{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar-search{display:none}}
+
+/* Totem Cut: official mark, not a generated initial-letter placeholder. */
+.brand-mark { display: block; width: 38px; height: 38px; flex: 0 0 38px; border-radius: var(--creator-radius-md); background: transparent; object-fit: contain; box-shadow: none; }

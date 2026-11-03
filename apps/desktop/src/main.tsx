@@ -101,7 +101,7 @@ function App() {
     <div className="desktop-shell">
       <aside className="app-sidebar" aria-label="Navegación principal">
         <div className="brand-row">
-          <span className="brand-mark" aria-hidden="true">C</span>
+          <img className="brand-mark" src="/branding/totem-cut-app-icon.svg" alt="" aria-hidden="true" width={38} height={38} />
           <span className="brand-copy"><strong>Creator OS</strong><small>Creator workspace</small></span>
         </div>
         <div className="nav-group">
