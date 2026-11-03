@@ -153,7 +153,12 @@ fn run_python(
         .arg(source)
         .args(["--asset-id", asset_id, "--output"])
         .arg(&output)
-        .args(["--model", options.model.as_str(), "--language", options.language.as_str()])
+        .args([
+            "--model",
+            options.model.as_str(),
+            "--language",
+            options.language.as_str(),
+        ])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
