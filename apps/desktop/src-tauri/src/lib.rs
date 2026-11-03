@@ -3,16 +3,16 @@ mod export_jobs;
 mod media_repository;
 mod preview_server;
 mod project_repository;
+mod subtitle_commands;
 mod timeline_commands;
 mod transcription_jobs;
-mod subtitle_commands;
 
 use export_jobs::{cancel_export, get_export_status, start_export, ExportManager};
 use media_repository::{import_media, list_project_media};
 use preview_server::{get_media_preview_url, start_preview_server};
 use project_repository::{create_project, list_recent_projects, open_project};
-use tauri::Manager;
 use subtitle_commands::export_subtitles;
+use tauri::Manager;
 use timeline_commands::{edit_timeline, get_timeline, TimelineWriteGuard};
 use transcription_jobs::{
     cancel_transcription, get_transcription_status, list_transcripts, start_transcription,

@@ -29,20 +29,28 @@ pub struct SubtitleCommandError {
 
 impl SubtitleCommandError {
     fn new(code: &'static str, message: impl Into<String>) -> Self {
-        Self { code, message: message.into() }
+        Self {
+            code,
+            message: message.into(),
+        }
     }
 }
 
 fn save_subtitles(path: &PathBuf, data: &str) -> Result<(), SubtitleCommandError> {
     let temporary = path.with_extension("partial");
     let result = (|| -> std::io::Result<()> {
-        let mut file = OpenOptions::new().write(true).create_new(true).open(&temporary)?;
+        let mut file = OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(&temporary)?;
         file.write_all(data.as_bytes())?;
         file.sync_all()?;
         // The final name is a fresh UUID under a validated app-owned project folder.
         fs::rename(&temporary, path)
     })();
-    if result.is_err() { let _ = fs::remove_file(&temporary); }
+    if result.is_err() {
+        let _ = fs::remove_file(&temporary);
+    }
     result.map_err(|error| SubtitleCommandError::new("subtitle_io_error", error.to_string()))
 }
 
@@ -61,22 +69,38 @@ pub fn export_subtitles(
     let transcript_uuid = Uuid::parse_str(&transcript_id)
         .map_err(|_| SubtitleCommandError::new("invalid_transcript_id", "Invalid transcript ID"))?;
     let transcripts = list_transcripts(
-        app.clone(), project_uuid.to_string(), asset_uuid.to_string(),
-    ).map_err(|error| SubtitleCommandError::new("transcript_unavailable", format!("{error:?}")))?;
-    let record = transcripts.into_iter()
+        app.clone(),
+        project_uuid.to_string(),
+        asset_uuid.to_string(),
+    )
+    .map_err(|error| SubtitleCommandError::new("transcript_unavailable", format!("{error:?}")))?;
+    let record = transcripts
+        .into_iter()
         .find(|record| record.id == transcript_uuid.to_string())
-        .ok_or_else(|| SubtitleCommandError::new("transcript_not_found", "Transcript does not belong to this project/asset"))?;
-    let text = render_subtitles(&record.transcript, format)
-        .map_err(|error| SubtitleCommandError::new("subtitle_validation_failed", error.to_string()))?;
+        .ok_or_else(|| {
+            SubtitleCommandError::new(
+                "transcript_not_found",
+                "Transcript does not belong to this project/asset",
+            )
+        })?;
+    let text = render_subtitles(&record.transcript, format).map_err(|error| {
+        SubtitleCommandError::new("subtitle_validation_failed", error.to_string())
+    })?;
 
-    let root = app.path().app_data_dir()
+    let root = app
+        .path()
+        .app_data_dir()
         .map_err(|error| SubtitleCommandError::new("app_data_unavailable", error.to_string()))?
-        .join("projects").join(project_uuid.to_string()).join("subtitles");
+        .join("projects")
+        .join(project_uuid.to_string())
+        .join("subtitles");
     fs::create_dir_all(&root)
         .map_err(|error| SubtitleCommandError::new("subtitle_io_error", error.to_string()))?;
     let filename = format!(
         "creator-subtitles-{}-{}.{}",
-        transcript_uuid, Uuid::new_v4(), format.extension()
+        transcript_uuid,
+        Uuid::new_v4(),
+        format.extension()
     );
     let target = root.join(filename);
     save_subtitles(&target, &text)?;
