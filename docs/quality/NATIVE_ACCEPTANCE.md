@@ -29,7 +29,7 @@ Do not promote these cells to PASS without actual executed evidence on a native 
 Install FFmpeg + FFprobe and optional Python worker only when needed. Follow the [official Tauri 2 prerequisites](https://v2.tauri.app/start/prerequisites/) on your OS.
 
 ```sh
-pnpm install --frozen-lockfile
+pnpm install
 python3 scripts/check-native-assets.py
 pnpm --dir apps/desktop exec tauri build --no-bundle
 pnpm --dir apps/desktop exec tauri dev
