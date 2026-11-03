@@ -1,0 +1,56 @@
+name: Visual review screenshots
+
+on:
+  pull_request:
+    paths:
+      - "apps/desktop/src/**"
+      - "apps/desktop/package.json"
+      - "apps/desktop/vite.config.ts"
+      - "packages/ui/**"
+      - "scripts/capture-ui.mjs"
+      - ".github/workflows/visual-review.yml"
+  workflow_dispatch:
+
+jobs:
+  screenshots:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: pnpm install
+      - name: Install Chromium testing tool
+        run: |
+          mkdir -p /tmp/creator-os-visual
+          npm install --no-package-lock --prefix /tmp/creator-os-visual playwright@1.56.1
+          /tmp/creator-os-visual/node_modules/.bin/playwright install chromium --with-deps
+      - name: Generate browser media fixture
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+          mkdir -p apps/desktop/public
+          ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=960x540:rate=24 -t 2 -c:v libvpx -deadline realtime -cpu-used 8 -an -y apps/desktop/public/preview.webm
+      - name: Start frontend
+        run: |
+          pnpm --filter @creator-os/desktop dev --host 127.0.0.1 > /tmp/creator-os-vite.log 2>&1 &
+          for i in $(seq 1 45); do
+            if curl --fail --silent http://127.0.0.1:1420/ > /dev/null; then exit 0; fi
+            sleep 1
+          done
+          cat /tmp/creator-os-vite.log
+          exit 1
+      - name: Render and validate light/dark screens
+        run: node scripts/capture-ui.mjs
+      - name: Upload actual browser screenshots
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: creator-os-ui-screenshots
+          path: visual-review/
+          if-no-files-found: warn
+          retention-days: 30
