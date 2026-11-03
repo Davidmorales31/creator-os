@@ -65,6 +65,9 @@ const errors = [];
 page.on("pageerror", (error) => errors.push(error.message));
 await page.goto("http://127.0.0.1:1420/", { waitUntil: "networkidle" });
 await page.getByText("Bienvenido a Creator OS").waitFor();
+const logo = page.locator('img.brand-mark[src="/branding/totem-cut-app-icon.svg"]');
+await logo.waitFor();
+assert.equal(await logo.evaluate((node) => node.complete && node.naturalWidth > 0), true, "Totem Cut logo must load in the real UI");
 await page.screenshot({ path: path.join(outputDir, "01-home-light.png"), fullPage: true });
 
 await page.getByRole("button", { name: /Interstellar — Resumen/ }).first().click();
