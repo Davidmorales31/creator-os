@@ -10,8 +10,8 @@ from __future__ import annotations
 import argparse
 import json
 import os
-from pathlib import Path
 from collections.abc import Sequence
+from pathlib import Path
 
 from .provider import FasterWhisperProvider, TranscriptionError, TranscriptionOptions
 from .transcript import TranscriptValidationError
