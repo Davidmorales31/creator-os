@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { type MediaAsset } from "./media";
 import { normalizeCommandError } from "./projects";
 import {
@@ -18,6 +18,7 @@ export function TranscriptionPanel({ projectId, selectedAsset }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const activeJobId = useRef<string | null>(null);
   const mediaId = selectedAsset?.id ?? null;
   const canTranscribe = selectedAsset && selectedAsset.kind !== "image"
     && selectedAsset.audioCodec !== null;
@@ -35,7 +36,12 @@ export function TranscriptionPanel({ projectId, selectedAsset }: Props) {
     }).catch((cause: unknown) => {
       if (active) setError(normalizeCommandError(cause).message);
     });
-    return () => { active = false; };
+    return () => {
+      active = false;
+      const previous = activeJobId.current;
+      activeJobId.current = null;
+      if (previous) void cancelTranscription(previous).catch(() => undefined);
+    };
   }, [projectId, mediaId]);
 
   useEffect(() => {
@@ -45,6 +51,7 @@ export function TranscriptionPanel({ projectId, selectedAsset }: Props) {
       void getTranscriptionStatus(job.id).then(async (current) => {
         if (!active) return;
         setJob(current);
+        if (current.status !== "queued" && current.status !== "running") activeJobId.current = null;
         if (current.status === "completed" && mediaId) {
           const transcripts = await listTranscripts(projectId, mediaId);
           if (active) setRecords(transcripts);
@@ -61,7 +68,9 @@ export function TranscriptionPanel({ projectId, selectedAsset }: Props) {
     setError(null);
     setBusy(true);
     try {
-      setJob(await startTranscription(projectId, mediaId, model, language, allowDownload));
+      const started = await startTranscription(projectId, mediaId, model, language, allowDownload);
+      activeJobId.current = started.id;
+      setJob(started);
     } catch (cause: unknown) {
       setError(normalizeCommandError(cause).message);
     } finally {
