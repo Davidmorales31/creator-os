@@ -129,15 +129,20 @@ fn paths(app: &AppHandle, project_id: &str) -> Result<PathBuf, TranscriptionComm
         .join("transcripts"))
 }
 
+#[derive(Clone, Copy)]
+struct TranscriptionOptions {
+    model: ModelChoice,
+    language: LanguageChoice,
+    allow_download: bool,
+}
+
 fn run_python(
     manager: &TranscriptionManager,
     job_id: &str,
     asset_id: &str,
     source: &Path,
     target: &Path,
-    model: ModelChoice,
-    language: LanguageChoice,
-    allow_download: bool,
+    options: TranscriptionOptions,
 ) -> Result<TranscriptRecord, (String, String)> {
     let output = target.with_extension("json.tmp");
     let python: OsString =
@@ -148,11 +153,11 @@ fn run_python(
         .arg(source)
         .args(["--asset-id", asset_id, "--output"])
         .arg(&output)
-        .args(["--model", model.as_str(), "--language", language.as_str()])
+        .args(["--model", options.model.as_str(), "--language", options.language.as_str()])
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());
-    if allow_download {
+    if options.allow_download {
         command.arg("--allow-download");
     }
 
@@ -373,9 +378,11 @@ pub fn start_transcription(
             &asset_id,
             &source,
             &target,
-            model,
-            language,
-            allow_download,
+            TranscriptionOptions {
+                model,
+                language,
+                allow_download,
+            },
         );
         let _ = fs::remove_file(target.with_extension("json.tmp"));
         let _ = fs::remove_file(target.with_extension("record.tmp"));
