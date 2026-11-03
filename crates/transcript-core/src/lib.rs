@@ -56,8 +56,11 @@ impl Transcript {
         }
         let mut last_start = 0;
         for segment in &self.segments {
-            if segment.start_ms < last_start || segment.end_ms <= segment.start_ms
-                || segment.text.trim().is_empty() || segment.text.len() > 20_000 {
+            if segment.start_ms < last_start
+                || segment.end_ms <= segment.start_ms
+                || segment.text.trim().is_empty()
+                || segment.text.len() > 20_000
+            {
                 return Err(TranscriptError::InvalidSegment);
             }
             last_start = segment.start_ms;
@@ -72,10 +75,21 @@ mod tests {
 
     fn example() -> Transcript {
         Transcript {
-            schema_version: 1, asset_id: "asset-1".into(), model: "base".into(),
-            language: "es".into(), segments: vec![
-                TranscriptSegment { start_ms: 0, end_ms: 900, text: "Hola".into() },
-                TranscriptSegment { start_ms: 1100, end_ms: 1900, text: "mundo".into() },
+            schema_version: 1,
+            asset_id: "asset-1".into(),
+            model: "base".into(),
+            language: "es".into(),
+            segments: vec![
+                TranscriptSegment {
+                    start_ms: 0,
+                    end_ms: 900,
+                    text: "Hola".into(),
+                },
+                TranscriptSegment {
+                    start_ms: 1100,
+                    end_ms: 1900,
+                    text: "mundo".into(),
+                },
             ],
         }
     }
@@ -86,7 +100,10 @@ mod tests {
         transcript.validate().unwrap();
         let encoded = serde_json::to_string(&transcript).unwrap();
         assert!(encoded.contains("\"schemaVersion\":1"));
-        assert_eq!(serde_json::from_str::<Transcript>(&encoded).unwrap(), transcript);
+        assert_eq!(
+            serde_json::from_str::<Transcript>(&encoded).unwrap(),
+            transcript
+        );
     }
 
     #[test]
@@ -106,6 +123,9 @@ mod tests {
     fn rejects_future_version() {
         let mut transcript = example();
         transcript.schema_version = 2;
-        assert_eq!(transcript.validate(), Err(TranscriptError::UnsupportedVersion));
+        assert_eq!(
+            transcript.validate(),
+            Err(TranscriptError::UnsupportedVersion)
+        );
     }
 }

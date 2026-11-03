@@ -64,7 +64,10 @@ pub struct TranscriptionCommandError {
 }
 impl TranscriptionCommandError {
     fn new(code: &'static str, message: impl Into<String>) -> Self {
-        Self { code, message: message.into() }
+        Self {
+            code,
+            message: message.into(),
+        }
     }
 }
 
@@ -77,7 +80,11 @@ pub enum ModelChoice {
 }
 impl ModelChoice {
     fn as_str(self) -> &'static str {
-        match self { Self::Tiny => "tiny", Self::Base => "base", Self::Small => "small" }
+        match self {
+            Self::Tiny => "tiny",
+            Self::Base => "base",
+            Self::Small => "small",
+        }
     }
 }
 #[derive(Debug, Deserialize, Clone, Copy)]
@@ -89,7 +96,11 @@ pub enum LanguageChoice {
 }
 impl LanguageChoice {
     fn as_str(self) -> &'static str {
-        match self { Self::Auto => "auto", Self::Es => "es", Self::En => "en" }
+        match self {
+            Self::Auto => "auto",
+            Self::Es => "es",
+            Self::En => "en",
+        }
     }
 }
 
@@ -107,9 +118,15 @@ fn paths(app: &AppHandle, project_id: &str) -> Result<PathBuf, TranscriptionComm
     // Every file path comes from app storage plus validated UUID; no UI-provided paths.
     let id = Uuid::parse_str(project_id)
         .map_err(|_| TranscriptionCommandError::new("invalid_project_id", "Invalid project ID"))?;
-    let base = app.path().app_data_dir()
+    let base = app
+        .path()
+        .app_data_dir()
         .map_err(|e| TranscriptionCommandError::new("app_data_unavailable", e.to_string()))?;
-    Ok(base.join("projects").join(id.to_string()).join("audio").join("transcripts"))
+    Ok(base
+        .join("projects")
+        .join(id.to_string())
+        .join("audio")
+        .join("transcripts"))
 }
 
 fn run_python(
@@ -123,19 +140,27 @@ fn run_python(
     allow_download: bool,
 ) -> Result<TranscriptRecord, (String, String)> {
     let output = target.with_extension("json.tmp");
-    let python: OsString = std::env::var_os("CREATOR_OS_PYTHON_PATH")
-        .unwrap_or_else(|| OsString::from("python"));
+    let python: OsString =
+        std::env::var_os("CREATOR_OS_PYTHON_PATH").unwrap_or_else(|| OsString::from("python"));
     let mut command = Command::new(python);
-    command.args(["-m", "creator_os_ai_worker.transcribe_cli", "--media"])
+    command
+        .args(["-m", "creator_os_ai_worker.transcribe_cli", "--media"])
         .arg(source)
         .args(["--asset-id", asset_id, "--output"])
         .arg(&output)
         .args(["--model", model.as_str(), "--language", language.as_str()])
-        .stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
-    if allow_download { command.arg("--allow-download"); }
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
+    if allow_download {
+        command.arg("--allow-download");
+    }
 
     let mut child = command.spawn().map_err(|error| {
-        ("python_unavailable".into(), format!("Python worker unavailable: {error}"))
+        (
+            "python_unavailable".into(),
+            format!("Python worker unavailable: {error}"),
+        )
     })?;
     let status = loop {
         if manager.cancel_requested(job_id) {
@@ -163,7 +188,10 @@ fn run_python(
         ))
     })?.len();
     if size == 0 || size > MAX_TRANSCRIPT_BYTES {
-        return Err(("invalid_transcript".into(), "Transcript output is empty or too large".into()));
+        return Err((
+            "invalid_transcript".into(),
+            "Transcript output is empty or too large".into(),
+        ));
     }
     let raw = fs::read(&output).map_err(|error| ("worker_failed".into(), error.to_string()))?;
     let payload: WorkerResult = serde_json::from_slice(&raw)
@@ -172,14 +200,25 @@ fn run_python(
         return Err((error.code, error.message));
     }
     if !status.success() {
-        return Err(("worker_failed".into(), format!("Worker exited with {status}")));
+        return Err((
+            "worker_failed".into(),
+            format!("Worker exited with {status}"),
+        ));
     }
     let transcript = payload.result.ok_or_else(|| {
-        ("invalid_transcript".into(), "Missing transcription result".into())
+        (
+            "invalid_transcript".into(),
+            "Missing transcription result".into(),
+        )
     })?;
-    transcript.validate().map_err(|error| ("invalid_transcript".into(), error.to_string()))?;
+    transcript
+        .validate()
+        .map_err(|error| ("invalid_transcript".into(), error.to_string()))?;
     if transcript.asset_id != asset_id {
-        return Err(("asset_mismatch".into(), "Worker returned a different asset ID".into()));
+        return Err((
+            "asset_mismatch".into(),
+            "Worker returned a different asset ID".into(),
+        ));
     }
     let record = TranscriptRecord {
         id: job_id.to_owned(),
@@ -188,9 +227,12 @@ fn run_python(
     };
     // Generate a completed-file payload separately: the worker cannot author arbitrary metadata.
     let staging = target.with_extension("record.tmp");
-    fs::write(&staging, serde_json::to_vec_pretty(&record)
-        .map_err(|error| ("serialization_failed".into(), error.to_string()))?)
-        .map_err(|error| ("transcript_io_error".into(), error.to_string()))?;
+    fs::write(
+        &staging,
+        serde_json::to_vec_pretty(&record)
+            .map_err(|error| ("serialization_failed".into(), error.to_string()))?,
+    )
+    .map_err(|error| ("transcript_io_error".into(), error.to_string()))?;
     if manager.cancel_requested(job_id) {
         let _ = fs::remove_file(staging);
         return Err(("cancelled".into(), "Transcription cancelled".into()));
@@ -201,7 +243,9 @@ fn run_python(
 }
 impl TranscriptionManager {
     fn cancel_requested(&self, id: &str) -> bool {
-        self.inner.lock().ok()
+        self.inner
+            .lock()
+            .ok()
             .and_then(|s| s.jobs.get(id).map(|j| j.cancellation_requested))
             .unwrap_or(true)
     }
@@ -224,7 +268,9 @@ impl TranscriptionManager {
                     }
                 }
             }
-            if shared.active.as_deref() == Some(id) { shared.active = None; }
+            if shared.active.as_deref() == Some(id) {
+                shared.active = None;
+            }
         }
     }
 }
@@ -250,16 +296,27 @@ pub fn start_transcription(
         .map_err(|e| TranscriptionCommandError::new("media_unavailable", format!("{e:?}")))?
         .list(&project_id)
         .map_err(|e| TranscriptionCommandError::new("media_unavailable", format!("{e:?}")))?;
-    let asset = assets.iter().find(|candidate| candidate.id == id.to_string())
-        .ok_or_else(|| TranscriptionCommandError::new("asset_not_found", "Media not registered in this project"))?;
+    let asset = assets
+        .iter()
+        .find(|candidate| candidate.id == id.to_string())
+        .ok_or_else(|| {
+            TranscriptionCommandError::new(
+                "asset_not_found",
+                "Media not registered in this project",
+            )
+        })?;
     if asset.kind == MediaKind::Image || asset.audio_codec.is_none() {
         return Err(TranscriptionCommandError::new(
-            "no_audio_stream", "Choose imported video/audio containing an audio stream"
+            "no_audio_stream",
+            "Choose imported video/audio containing an audio stream",
         ));
     }
     let source = PathBuf::from(&asset.source_path);
     if !source.is_file() {
-        return Err(TranscriptionCommandError::new("media_missing", "Media source is missing"));
+        return Err(TranscriptionCommandError::new(
+            "media_missing",
+            "Media source is missing",
+        ));
     }
     let transcripts = paths(&app, &project.id)?;
     fs::create_dir_all(&transcripts)
@@ -267,21 +324,39 @@ pub fn start_transcription(
 
     let job_id = Uuid::new_v4().to_string();
     let job = TranscriptionJob {
-        id: job_id.clone(), asset_id: asset_id.clone(), status: TranscriptionStatus::Queued,
-        result_id: None, error: None, error_code: None,
+        id: job_id.clone(),
+        asset_id: asset_id.clone(),
+        status: TranscriptionStatus::Queued,
+        result_id: None,
+        error: None,
+        error_code: None,
     };
     {
         let mut shared = manager.inner.lock().map_err(|_| {
             TranscriptionCommandError::new("transcription_busy", "Transcription state unavailable")
         })?;
         if shared.active.is_some() {
-            return Err(TranscriptionCommandError::new("transcription_busy", "Only one local transcription can run at a time"));
+            return Err(TranscriptionCommandError::new(
+                "transcription_busy",
+                "Only one local transcription can run at a time",
+            ));
         }
         if shared.jobs.len() >= MAX_VISIBLE_JOBS {
-            shared.jobs.retain(|_, entry| matches!(entry.job.status, TranscriptionStatus::Running | TranscriptionStatus::Queued));
+            shared.jobs.retain(|_, entry| {
+                matches!(
+                    entry.job.status,
+                    TranscriptionStatus::Running | TranscriptionStatus::Queued
+                )
+            });
         }
         shared.active = Some(job_id.clone());
-        shared.jobs.insert(job_id.clone(), JobEntry { job: job.clone(), cancellation_requested: false });
+        shared.jobs.insert(
+            job_id.clone(),
+            JobEntry {
+                job: job.clone(),
+                cancellation_requested: false,
+            },
+        );
     }
 
     let target = transcripts.join(format!("{job_id}.json"));
@@ -293,7 +368,16 @@ pub fn start_transcription(
                 entry.job.status = TranscriptionStatus::Running;
             }
         }
-        let result = run_python(&worker, &job_id, &asset_id, &source, &target, model, language, allow_download);
+        let result = run_python(
+            &worker,
+            &job_id,
+            &asset_id,
+            &source,
+            &target,
+            model,
+            language,
+            allow_download,
+        );
         let _ = fs::remove_file(target.with_extension("json.tmp"));
         let _ = fs::remove_file(target.with_extension("record.tmp"));
         worker.finish(&job_id, result);
@@ -307,11 +391,18 @@ pub fn get_transcription_status(
     job_id: String,
 ) -> Result<TranscriptionJob, TranscriptionCommandError> {
     let shared = manager.inner.lock().map_err(|_| {
-        TranscriptionCommandError::new("transcription_unavailable", "Transcription manager unavailable")
+        TranscriptionCommandError::new(
+            "transcription_unavailable",
+            "Transcription manager unavailable",
+        )
     })?;
-    shared.jobs.get(&job_id).map(|job| job.job.clone()).ok_or_else(|| {
-        TranscriptionCommandError::new("transcription_not_found", "Transcription job not found")
-    })
+    shared
+        .jobs
+        .get(&job_id)
+        .map(|job| job.job.clone())
+        .ok_or_else(|| {
+            TranscriptionCommandError::new("transcription_not_found", "Transcription job not found")
+        })
 }
 
 #[tauri::command]
@@ -320,12 +411,18 @@ pub fn cancel_transcription(
     job_id: String,
 ) -> Result<TranscriptionJob, TranscriptionCommandError> {
     let mut shared = manager.inner.lock().map_err(|_| {
-        TranscriptionCommandError::new("transcription_unavailable", "Transcription manager unavailable")
+        TranscriptionCommandError::new(
+            "transcription_unavailable",
+            "Transcription manager unavailable",
+        )
     })?;
     let entry = shared.jobs.get_mut(&job_id).ok_or_else(|| {
         TranscriptionCommandError::new("transcription_not_found", "Transcription job not found")
     })?;
-    if matches!(entry.job.status, TranscriptionStatus::Queued | TranscriptionStatus::Running) {
+    if matches!(
+        entry.job.status,
+        TranscriptionStatus::Queued | TranscriptionStatus::Running
+    ) {
         entry.cancellation_requested = true;
     }
     Ok(entry.job.clone())
@@ -337,9 +434,9 @@ pub fn list_transcripts(
     project_id: String,
     asset_id: String,
 ) -> Result<Vec<TranscriptRecord>, TranscriptionCommandError> {
-    let asset_id = Uuid::parse_str(&asset_id).map_err(|_| {
-        TranscriptionCommandError::new("invalid_asset_id", "Invalid asset ID")
-    })?.to_string();
+    let asset_id = Uuid::parse_str(&asset_id)
+        .map_err(|_| TranscriptionCommandError::new("invalid_asset_id", "Invalid asset ID"))?
+        .to_string();
     // Validate project and asset ownership before looking up transcript data.
     let _project = FsProjectRepository::from_app(&app)
         .map_err(|e| TranscriptionCommandError::new("project_unavailable", format!("{e:?}")))?
@@ -350,25 +447,40 @@ pub fn list_transcripts(
         .list(&project_id)
         .map_err(|e| TranscriptionCommandError::new("media_unavailable", format!("{e:?}")))?;
     if !assets.iter().any(|asset| asset.id == asset_id) {
-        return Err(TranscriptionCommandError::new("asset_not_found", "Asset does not belong to project"));
+        return Err(TranscriptionCommandError::new(
+            "asset_not_found",
+            "Asset does not belong to project",
+        ));
     }
     let root = paths(&app, &project_id)?;
-    if !root.is_dir() { return Ok(Vec::new()); }
+    if !root.is_dir() {
+        return Ok(Vec::new());
+    }
     let mut records = Vec::new();
     for file in fs::read_dir(root)
         .map_err(|e| TranscriptionCommandError::new("transcript_io_error", e.to_string()))?
     {
-        let file = file.map_err(|e| TranscriptionCommandError::new("transcript_io_error", e.to_string()))?;
+        let file =
+            file.map_err(|e| TranscriptionCommandError::new("transcript_io_error", e.to_string()))?;
         let path = file.path();
-        if path.extension().is_none_or(|ext| ext != "json") || !path.is_file() { continue; }
-        let metadata = fs::metadata(&path).map_err(|e| TranscriptionCommandError::new("transcript_io_error", e.to_string()))?;
-        if metadata.len() > MAX_TRANSCRIPT_BYTES {
-            return Err(TranscriptionCommandError::new("invalid_transcript", "Transcript file exceeds limit"));
+        if path.extension().is_none_or(|ext| ext != "json") || !path.is_file() {
+            continue;
         }
-        let raw = fs::read(&path).map_err(|e| TranscriptionCommandError::new("transcript_io_error", e.to_string()))?;
+        let metadata = fs::metadata(&path)
+            .map_err(|e| TranscriptionCommandError::new("transcript_io_error", e.to_string()))?;
+        if metadata.len() > MAX_TRANSCRIPT_BYTES {
+            return Err(TranscriptionCommandError::new(
+                "invalid_transcript",
+                "Transcript file exceeds limit",
+            ));
+        }
+        let raw = fs::read(&path)
+            .map_err(|e| TranscriptionCommandError::new("transcript_io_error", e.to_string()))?;
         let record: TranscriptRecord = serde_json::from_slice(&raw)
             .map_err(|e| TranscriptionCommandError::new("invalid_transcript", e.to_string()))?;
-        record.transcript.validate()
+        record
+            .transcript
+            .validate()
             .map_err(|e| TranscriptionCommandError::new("invalid_transcript", e.to_string()))?;
         if record.transcript.asset_id == asset_id {
             records.push(record);
@@ -386,15 +498,25 @@ mod tests {
     fn running_job_cannot_be_started_twice_and_cancellation_is_typed() {
         let manager = TranscriptionManager::default();
         let job_id = "job-1".to_owned();
-        manager.inner.lock().unwrap().jobs.insert(job_id.clone(), JobEntry {
-            job: TranscriptionJob {
-                id: job_id.clone(), asset_id: "asset".into(), status: TranscriptionStatus::Running,
-                result_id: None, error: None, error_code: None,
+        manager.inner.lock().unwrap().jobs.insert(
+            job_id.clone(),
+            JobEntry {
+                job: TranscriptionJob {
+                    id: job_id.clone(),
+                    asset_id: "asset".into(),
+                    status: TranscriptionStatus::Running,
+                    result_id: None,
+                    error: None,
+                    error_code: None,
+                },
+                cancellation_requested: true,
             },
-            cancellation_requested: true,
-        });
+        );
         assert!(manager.cancel_requested(&job_id));
         manager.finish(&job_id, Err(("cancelled".into(), "cancelled".into())));
-        assert_eq!(manager.inner.lock().unwrap().jobs[&job_id].job.status, TranscriptionStatus::Cancelled);
+        assert_eq!(
+            manager.inner.lock().unwrap().jobs[&job_id].job.status,
+            TranscriptionStatus::Cancelled
+        );
     }
 }

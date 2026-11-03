@@ -12,7 +12,10 @@ use preview_server::{get_media_preview_url, start_preview_server};
 use project_repository::{create_project, list_recent_projects, open_project};
 use tauri::Manager;
 use timeline_commands::{edit_timeline, get_timeline, TimelineWriteGuard};
-use transcription_jobs::{start_transcription, get_transcription_status, cancel_transcription, list_transcripts, TranscriptionManager};
+use transcription_jobs::{
+    cancel_transcription, get_transcription_status, list_transcripts, start_transcription,
+    TranscriptionManager,
+};
 
 #[tauri::command]
 fn healthcheck() -> &'static str {
