@@ -58,6 +58,7 @@ await page.addInitScript(() => {
           return next;
         }
         case "list_project_media": return assets;
+        case "export_subtitles": return { transcriptId: transcript.id, format: args.format, outputPath: "/fixtures/subtitles/mock." + args.format, bytesWritten: 123 };
         case "list_transcripts": return transcriptJob?.status === "completed" ? [transcript] : [];
         case "start_transcription": {
           transcriptJob = { id: "transcription-test", assetId: assets[0].id, status: "running", resultId: null, error: null, errorCode: null };
@@ -116,6 +117,8 @@ await page.getByRole("button", { name: "Exportar MP4" }).click();
 await page.getByText("Exportación terminada").waitFor();
 await page.getByRole("button", { name: "Transcribir medio" }).click();
 await page.getByText("En un futuro, la humanidad busca un nuevo hogar.").waitFor();
+await page.getByRole("button", { name: "Exportar .srt" }).click();
+await page.getByText(/Subtítulos guardados en/).waitFor();
 await page.screenshot({ path: path.join(outputDir, "02-editor-light.png"), fullPage: true });
 
 await page.getByRole("button", { name: "Activar modo oscuro" }).click();

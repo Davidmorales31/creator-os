@@ -290,3 +290,8 @@ button.nav-item:hover:not(:disabled) { background: var(--creator-surface-raised)
 .transcription-segment p{margin:0;color:var(--creator-text);font-size:12px}
 .transcription-time{font:10px var(--creator-font-mono);color:var(--creator-accent);white-space:nowrap}
 @media(max-width:560px){.transcription-settings{display:grid;grid-template-columns:1fr}.transcription-segment{grid-template-columns:1fr;gap:4px}}
+
+/* First-class SRT/VTT exports use the existing semantic control tokens. */
+.transcription-export-actions{display:flex;align-items:center;flex-wrap:wrap;gap:var(--creator-space-1);padding:var(--creator-space-2);border-top:1px solid var(--creator-border);background:var(--creator-surface)}
+.transcription-export-result{margin:0;padding:var(--creator-space-1) var(--creator-space-2);border-top:1px solid var(--creator-border);color:var(--creator-text-secondary);background:var(--creator-accent-subtle);font-size:11px;overflow-wrap:anywhere}
+.transcription-export-result strong{color:var(--creator-accent);font-family:var(--creator-font-mono)}

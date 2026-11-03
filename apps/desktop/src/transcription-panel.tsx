@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { type MediaAsset } from "./media";
 import { normalizeCommandError } from "./projects";
+import { exportSubtitles, type SubtitleFormat } from "./transcription";
 import {
   cancelTranscription, getTranscriptionStatus, listTranscripts, startTranscription,
   transcriptionTime, type TranscriptRecord, type TranscriptionJob,
@@ -18,6 +19,8 @@ export function TranscriptionPanel({ projectId, selectedAsset }: Props) {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState(false);
+  const [subtitleBusy, setSubtitleBusy] = useState(false);
+  const [subtitleResult, setSubtitleResult] = useState<string | null>(null);
   const activeJobId = useRef<string | null>(null);
   const mediaId = selectedAsset?.id ?? null;
   const canTranscribe = selectedAsset && selectedAsset.kind !== "image"
@@ -30,6 +33,7 @@ export function TranscriptionPanel({ projectId, selectedAsset }: Props) {
     setJob(null);
     setError(null);
     setCopied(false);
+    setSubtitleResult(null);
     if (!mediaId) return () => { active = false; };
     void listTranscripts(projectId, mediaId).then((items) => {
       if (active) setRecords(items);
@@ -97,6 +101,22 @@ export function TranscriptionPanel({ projectId, selectedAsset }: Props) {
     }
   }
 
+  async function saveSubtitle(format: SubtitleFormat) {
+    const record = records[0];
+    if (!record || !mediaId || subtitleBusy || running) return;
+    setSubtitleBusy(true);
+    setSubtitleResult(null);
+    setError(null);
+    try {
+      const result = await exportSubtitles(projectId, mediaId, record.id, format);
+      setSubtitleResult(result.outputPath);
+    } catch (cause: unknown) {
+      setError(normalizeCommandError(cause).message);
+    } finally {
+      setSubtitleBusy(false);
+    }
+  }
+
   const transcript = records[0] ?? null;
   return (
     <section className="panel transcription-panel" aria-label="Transcripción local">
@@ -145,6 +165,12 @@ export function TranscriptionPanel({ projectId, selectedAsset }: Props) {
               {copied ? "Copiado" : "Copiar texto"}
             </button>
           </div>
+            <div className="transcription-export-actions" aria-label="Exportar subtítulos">
+              <button type="button" className="secondary-button" disabled={subtitleBusy || running || transcript.segments.length === 0} onClick={() => void saveSubtitle("srt")}>Exportar .srt</button>
+              <button type="button" className="secondary-button" disabled={subtitleBusy || running || transcript.segments.length === 0} onClick={() => void saveSubtitle("vtt")}>Exportar .vtt</button>
+            </div>
+
+          {subtitleResult && <p className="transcription-export-result" role="status">Subtítulos guardados en: <strong>{subtitleResult}</strong></p>}
           <div className="transcription-segments" role="list" aria-label="Segmentos transcritos">
             {transcript.segments.map((segment, index) => (
               <div className="transcription-segment" role="listitem" key={transcript.id + "-" + index}>

@@ -15,3 +15,9 @@ export function transcriptionTime(ms: number): string {
   const seconds = Math.floor(ms / 1000);
   return String(Math.floor(seconds / 60)).padStart(2, "0") + ":" + String(seconds % 60).padStart(2, "0");
 }
+
+export type SubtitleFormat = "srt" | "vtt";
+export type SubtitleExportResult = { transcriptId: string; format: SubtitleFormat; outputPath: string; bytesWritten: number };
+export function exportSubtitles(projectId: string, assetId: string, transcriptId: string, format: SubtitleFormat): Promise<SubtitleExportResult> {
+  return invoke<SubtitleExportResult>("export_subtitles", { projectId, assetId, transcriptId, format });
+}

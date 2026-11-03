@@ -1,3 +1,6 @@
+mod subtitles;
+pub use subtitles::{render_subtitles, SubtitleError, SubtitleFormat};
+
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
