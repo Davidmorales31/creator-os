@@ -39,10 +39,16 @@ impl From<serde_json::Error> for PreviewCommandError {
 fn validated_project_id(project_id: &str) -> Result<String, PreviewCommandError> {
     Uuid::parse_str(project_id)
         .map(|id| id.to_string())
-        .map_err(|_| PreviewCommandError::new("invalid_project_id", "Project id is not a valid UUID"))
+        .map_err(|_| {
+            PreviewCommandError::new("invalid_project_id", "Project id is not a valid UUID")
+        })
 }
 
-fn load_asset(app: &AppHandle, project_id: &str, asset_id: &str) -> Result<MediaAsset, PreviewCommandError> {
+fn load_asset(
+    app: &AppHandle,
+    project_id: &str,
+    asset_id: &str,
+) -> Result<MediaAsset, PreviewCommandError> {
     let project_id = validated_project_id(project_id)?;
     let app_data = app
         .path()
@@ -68,7 +74,12 @@ fn load_asset(app: &AppHandle, project_id: &str, asset_id: &str) -> Result<Media
         .assets
         .into_iter()
         .find(|asset| asset.id == asset_id)
-        .ok_or_else(|| PreviewCommandError::new("media_asset_not_found", "Media asset was not found in this project"))
+        .ok_or_else(|| {
+            PreviewCommandError::new(
+                "media_asset_not_found",
+                "Media asset was not found in this project",
+            )
+        })
 }
 
 #[tauri::command]
@@ -83,7 +94,10 @@ pub fn prepare_media_preview(
     if !source.exists() {
         return Err(PreviewCommandError::new(
             "media_source_missing",
-            format!("The original media file no longer exists: {}", source.display()),
+            format!(
+                "The original media file no longer exists: {}",
+                source.display()
+            ),
         ));
     }
     if !source.is_file() {
