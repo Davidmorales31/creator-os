@@ -4,11 +4,16 @@ import { listTranscripts, type TranscriptRecord } from "./transcription";
 import { captionAt, eligibleCaptions } from "./caption-cues";
 import { normalizeCommandError } from "./projects";
 import type { TimelinePreviewTarget } from "./timeline-preview";
+import { montageClipEndSeconds } from "./montage-plan";
+import type { MontageSession } from "./montage-session";
 
 type FitMode = "fit" | "fill";
 type MediaPlayerProps = { projectId: string; asset: MediaAsset | null; captionRevision?: number;
   previewRequest?: (TimelinePreviewTarget & { requestId: number }) | null;
   onSourceTimeChange?: (seconds: number) => void;
+  montageSession?: MontageSession | null;
+  onMontageFinished?: (runId: string, index: number) => void;
+  onMontageError?: (message: string) => void;
 };
 function formatClock(seconds: number): string {
   if (!Number.isFinite(seconds)) return "0:00";
@@ -16,9 +21,16 @@ function formatClock(seconds: number): string {
   const minutes = Math.floor((total % 3600) / 60); const secs = total % 60;
   return hours > 0 ? `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}` : `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
-export function MediaPlayer({ projectId, asset, captionRevision = 0, previewRequest, onSourceTimeChange }: MediaPlayerProps) {
+export function MediaPlayer({ projectId, asset, captionRevision = 0, previewRequest, onSourceTimeChange, montageSession, onMontageFinished, onMontageError }: MediaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const readySourceAsset = useRef<string | null>(null);
+  const montageConsumedRef = useRef<string | null>(null);
+  const latestMontageRef = useRef(montageSession);
+  const montageFinishedRef = useRef(onMontageFinished);
+  const montageErrorRef = useRef(onMontageError);
+  latestMontageRef.current = montageSession;
+  montageFinishedRef.current = onMontageFinished;
+  montageErrorRef.current = onMontageError;
   const [transcripts, setTranscripts] = useState<TranscriptRecord[]>([]);
   const [selectedTranscriptId, setSelectedTranscriptId] = useState<string | null>(null);
   const [captionsEnabled, setCaptionsEnabled] = useState(false);
@@ -67,6 +79,50 @@ export function MediaPlayer({ projectId, asset, captionRevision = 0, previewRequ
     return () => { alive = false; };
   }, [projectId, asset?.id, asset?.kind, captionRevision]);
 
+  function activateMontage(video: HTMLVideoElement, assetId: string) {
+    const session = latestMontageRef.current;
+    if (!session || readySourceAsset.current !== assetId || video.readyState < 1) return;
+    const clip = session.plan.segments[session.index];
+    if (clip.assetId !== assetId) return;
+    const marker = session.runId + ":" + session.index;
+    if (montageConsumedRef.current === marker) return;
+    montageConsumedRef.current = marker;
+    const seek = clip.sourceStartFrame / session.plan.fps;
+    video.pause();
+    video.currentTime = seek;
+    setCurrentTime(seek);
+    onSourceTimeChange?.(seek);
+    void video.play().catch(() => {
+      if (latestMontageRef.current?.runId === session.runId) {
+        montageErrorRef.current?.("No fue posible reproducir este clip. Comprueba el códec en la WebView del sistema.");
+      }
+    });
+  }
+  function checkMontageBoundary(video: HTMLVideoElement, ended = false) {
+    const session = latestMontageRef.current;
+    if (!session || readySourceAsset.current !== asset?.id) return;
+    const segment = session.plan.segments[session.index];
+    if (segment.assetId !== asset?.id) return;
+    const marker = session.runId + ":" + session.index;
+    if (montageConsumedRef.current !== marker) return;
+    const endSeconds = montageClipEndSeconds(segment, session.plan.fps);
+    if (!ended && video.currentTime + 0.0001 < endSeconds) return;
+    montageConsumedRef.current = marker + ":ended";
+    video.pause();
+    montageFinishedRef.current?.(session.runId, session.index);
+  }
+  useEffect(() => {
+    if (!montageSession) {
+      montageConsumedRef.current = null;
+      videoRef.current?.pause();
+      return;
+    }
+    const video = videoRef.current;
+    if (video && asset?.id === montageSession.plan.segments[montageSession.index].assetId) {
+      activateMontage(video, asset.id);
+    }
+  }, [montageSession, asset?.id, sourceUrl]);
+
   useEffect(() => {
     const video = videoRef.current;
     if (!video || !previewRequest || readySourceAsset.current !== previewRequest.assetId
@@ -80,11 +136,11 @@ export function MediaPlayer({ projectId, asset, captionRevision = 0, previewRequ
   }, [previewRequest, asset?.id]);
 
   async function togglePlayback() {
-    const video = videoRef.current; if (!video) return;
+    const video = videoRef.current; if (!video || montageSession) return;
     if (video.paused) { try { await video.play(); } catch { setError("Playback could not start. The media codec may not be supported by the system WebView."); } } else { video.pause(); }
   }
   function seekTo(nextTime: number) {
-    const video = videoRef.current; if (!video || !Number.isFinite(nextTime)) return;
+    const video = videoRef.current; if (!video || montageSession || !Number.isFinite(nextTime)) return;
     const max = Number.isFinite(video.duration) ? video.duration : duration; const clamped = Math.min(Math.max(nextTime, 0), Math.max(max, 0));
     video.currentTime = clamped; setCurrentTime(clamped); onSourceTimeChange?.(clamped);
   }
@@ -96,7 +152,7 @@ export function MediaPlayer({ projectId, asset, captionRevision = 0, previewRequ
   if (!asset) return <section className="panel player-panel player-empty" aria-label="Video preview"><span className="eyebrow">Preview</span><div className="player-empty-copy"><strong>Select a video</strong><span>Choose an imported video from the Media library.</span></div></section>;
   if (asset.kind !== "video") return <section className="panel player-panel player-empty" aria-label="Video preview"><span className="eyebrow">Preview</span><div className="player-empty-copy"><strong>{asset.fileName}</strong><span>Video Preview currently supports video assets. Audio and image preview come later.</span></div></section>;
   return <section className="panel player-panel" aria-label={`Preview ${asset.fileName}`} tabIndex={0} onKeyDown={handleKeyDown}>
-    <div className="player-heading"><div><span className="eyebrow">{previewRequest?.assetId === asset.id ? "Preview · clip del timeline" : "Preview · archivo original"}</span><strong title={asset.fileName}>{asset.fileName}</strong></div><span className="shortcut-hint">Space · ←/→ 5s</span></div>
+    <div className="player-heading"><div><span className="eyebrow">{montageSession ? "Preview · montaje secuencial" : previewRequest?.assetId === asset.id ? "Preview · clip del timeline" : "Preview · archivo original"}</span><strong title={asset.fileName}>{asset.fileName}</strong></div><span className="shortcut-hint">Space · ←/→ 5s</span></div>
     <div className={`video-stage video-stage-${fitMode}`}>
       {loading && <div className="player-overlay">Preparing local preview…</div>}
       {error && <div className="player-overlay player-error">{error}</div>}
@@ -105,6 +161,7 @@ export function MediaPlayer({ projectId, asset, captionRevision = 0, previewRequ
           const video = event.currentTarget;
           const nextDuration = video.duration;
           readySourceAsset.current = asset.id;
+          if (latestMontageRef.current) activateMontage(video, asset.id);
           if (Number.isFinite(nextDuration)) setDuration(nextDuration);
           if (previewRequest?.assetId === asset.id) {
             const requestedTime = Math.min(Math.max(previewRequest.sourceSeconds, 0), Number.isFinite(nextDuration) ? nextDuration : (asset.durationSeconds ?? 0));
@@ -113,14 +170,14 @@ export function MediaPlayer({ projectId, asset, captionRevision = 0, previewRequ
             onSourceTimeChange?.(requestedTime);
           }
         }}
-        onTimeUpdate={(event) => { setCurrentTime(event.currentTarget.currentTime); onSourceTimeChange?.(event.currentTarget.currentTime); }}
-        onSeeked={(event) => { setCurrentTime(event.currentTarget.currentTime); onSourceTimeChange?.(event.currentTarget.currentTime); }} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}
-        onError={() => setError("This video could not be decoded by the system WebView. Creator OS will add proxy generation for unsupported codecs.")} />}
+        onTimeUpdate={(event) => { setCurrentTime(event.currentTarget.currentTime); onSourceTimeChange?.(event.currentTarget.currentTime); checkMontageBoundary(event.currentTarget); }}
+        onSeeked={(event) => { setCurrentTime(event.currentTarget.currentTime); onSourceTimeChange?.(event.currentTarget.currentTime); checkMontageBoundary(event.currentTarget); }} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={(event) => { setPlaying(false); checkMontageBoundary(event.currentTarget, true); }}
+        onError={() => { setError("This video could not be decoded by the system WebView. Creator OS will add proxy generation for unsupported codecs."); if (latestMontageRef.current) montageErrorRef.current?.("No se pudo decodificar un clip del montaje."); }} />}
       {activeCaption && <div className="caption-overlay" aria-label="Subtítulos de previsualización"><span className="caption-text">{activeCaption.text}</span></div>}
     </div>
     <div className="player-controls">
-      <button type="button" className="player-control-button" onClick={() => void togglePlayback()} disabled={!sourceUrl || Boolean(error)} aria-label={playing ? "Pause" : "Play"}>{playing ? "Pause" : "Play"}</button>
-      <input className="player-scrubber" type="range" min={0} max={Math.max(duration, 0)} step={0.01} value={Math.min(currentTime, Math.max(duration, 0))} onChange={(event) => seekTo(Number(event.currentTarget.value))} disabled={!sourceUrl || duration <= 0} aria-label="Seek video" />
+      <button type="button" className="player-control-button" onClick={() => void togglePlayback()} disabled={Boolean(montageSession) || !sourceUrl || Boolean(error)} aria-label={playing ? "Pause" : "Play"}>{playing ? "Pause" : "Play"}</button>
+      <input className="player-scrubber" type="range" min={0} max={Math.max(duration, 0)} step={0.01} value={Math.min(currentTime, Math.max(duration, 0))} onChange={(event) => seekTo(Number(event.currentTarget.value))} disabled={Boolean(montageSession) || !sourceUrl || duration <= 0} aria-label="Seek video" />
       <span className="player-time">{formatClock(currentTime)} / {formatClock(duration)}</span>
       <button type="button" className="secondary-button player-fit-button" onClick={() => setFitMode((mode) => mode === "fit" ? "fill" : "fit")} title="Toggle fit/fill">{fitMode === "fit" ? "Fit" : "Fill"}</button>
     </div>

@@ -10,6 +10,8 @@ import { TimelinePanel } from "./timeline-panel";
 import { ExportPanel } from "./export-panel";
 import { TranscriptionPanel } from "./transcription-panel";
 import type { TimelinePreviewTarget } from "./timeline-preview";
+import type { MontagePlan } from "./montage-plan";
+import type { MontageSession } from "./montage-session";
 
 type View = "projects" | "workspace";
 type Theme = "light" | "dark";
@@ -29,6 +31,7 @@ function App() {
   const [captionRevision, setCaptionRevision] = useState(0);
   const [previewCommand, setPreviewCommand] = useState<(TimelinePreviewTarget & { requestId: number }) | null>(null);
   const [previewSourceTime, setPreviewSourceTime] = useState<number | null>(null);
+  const [montage, setMontage] = useState<MontageSession | null>(null);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
 
@@ -57,6 +60,7 @@ function App() {
     setSelectedMedia(null);
     setPreviewCommand(null);
     setPreviewSourceTime(null);
+    setMontage(null);
     setMediaAssets([]);
     setView("workspace");
     await refreshMedia(project.id);
@@ -101,7 +105,7 @@ function App() {
       let lastImported: MediaAsset | null = null;
       for (const sourcePath of paths) lastImported = await importMedia(activeProject.id, sourcePath);
       await refreshMedia(activeProject.id);
-      if (lastImported) { setSelectedMedia(lastImported); setPreviewCommand(null); setPreviewSourceTime(null); }
+      if (lastImported) { setSelectedMedia(lastImported); setPreviewCommand(null); setPreviewSourceTime(null); setMontage(null); }
     } catch (cause) { setError(normalizeCommandError(cause)); }
     finally { setMediaBusy(false); }
   }
@@ -201,7 +205,7 @@ function App() {
                   <div className="media-list" role="group" aria-label="Archivos importados">
                     {mediaAssets.map((asset) => {
                       const selected = selectedMedia?.id === asset.id;
-                      return <button key={asset.id} type="button" className={`media-row ${selected ? "media-row-selected" : ""}`} aria-pressed={selected} onClick={() => { setSelectedMedia(asset); setPreviewCommand(null); setPreviewSourceTime(null); }}>
+                      return <button key={asset.id} type="button" className={`media-row ${selected ? "media-row-selected" : ""}`} aria-pressed={selected} onClick={() => { setSelectedMedia(asset); setPreviewCommand(null); setPreviewSourceTime(null); setMontage(null); }}>
                         <span className={`media-kind media-kind-${asset.kind}`} aria-hidden="true">{asset.kind === "video" ? "▶" : asset.kind === "audio" ? "♫" : "▧"}</span>
                         <span className="media-copy"><strong title={asset.fileName}>{asset.fileName}</strong><small>{formatDuration(asset.durationSeconds)} · {formatFileSize(asset.fileSizeBytes)}</small></span>
                         <span className="media-tech">{asset.width && asset.height ? `${asset.width}×${asset.height}` : asset.kind}</span>
@@ -212,11 +216,38 @@ function App() {
                 <div className="media-panel-footer">Los archivos permanecen en su ubicación original.</div>
               </section>
               <MediaPlayer projectId={activeProject.id} asset={selectedMedia} captionRevision={captionRevision}
-                previewRequest={previewCommand} onSourceTimeChange={setPreviewSourceTime}/>
+                previewRequest={montage ? null : previewCommand} onSourceTimeChange={setPreviewSourceTime}
+                montageSession={montage}
+                onMontageFinished={(runId, index) => {
+                  setMontage((current) => {
+                    if (!current || current.runId !== runId || current.index !== index) return current;
+                    const nextIndex = current.index + 1;
+                    if (nextIndex >= current.plan.segments.length) return null;
+                    const next = current.plan.segments[nextIndex];
+                    const nextAsset = mediaAssets.find((candidate) => candidate.id === next.assetId && candidate.kind === "video");
+                    if (!nextAsset) { setError({ code: "montage_media_missing", message: "No se encuentra el siguiente video del montaje." }); return null; }
+                    setSelectedMedia(nextAsset);
+                    return { ...current, index: nextIndex };
+                  });
+                }}
+                onMontageError={(message) => { setError({ code: "montage_playback_failed", message }); setMontage(null); }} />
               <aside className="panel inspector-panel"><div className="section-heading"><div><span className="eyebrow">INSPECTOR</span><h2>Propiedades</h2></div></div>{selectedMedia ? <dl className="inspector-fields"><div><dt>Archivo</dt><dd title={selectedMedia.fileName}>{selectedMedia.fileName}</dd></div><div><dt>Tipo</dt><dd>{selectedMedia.kind}</dd></div><div><dt>Duración</dt><dd>{formatDuration(selectedMedia.durationSeconds)}</dd></div><div><dt>Resolución</dt><dd>{selectedMedia.width && selectedMedia.height ? `${selectedMedia.width} × ${selectedMedia.height}` : "—"}</dd></div><div><dt>FPS</dt><dd>{selectedMedia.fps?.toFixed(2) ?? "—"}</dd></div></dl> : <p>Selecciona un archivo para ver sus propiedades.</p>}</aside>
             </div>
-            <TimelinePanel projectId={activeProject.id} fps={activeProject.settings.fps} mediaAssets={mediaAssets} selectedAsset={selectedMedia} previewRequest={previewCommand} previewSourceTime={previewSourceTime}
+            <TimelinePanel projectId={activeProject.id} fps={activeProject.settings.fps} mediaAssets={mediaAssets} selectedAsset={selectedMedia} previewRequest={montage ? null : previewCommand} previewSourceTime={previewSourceTime}
+              montageSession={montage}
+              onMontageStart={(plan: MontagePlan) => {
+                const first = plan.segments[0];
+                const firstAsset = mediaAssets.find((candidate) => candidate.id === first.assetId && candidate.kind === "video");
+                if (!firstAsset) { setError({ code: "montage_media_missing", message: "No se encontró el primer video del montaje." }); return; }
+                setError(null);
+                setPreviewCommand(null);
+                setPreviewSourceTime(null);
+                setSelectedMedia(firstAsset);
+                setMontage({ runId: crypto.randomUUID(), plan, index: 0 });
+              }}
+              onMontageStop={() => setMontage(null)}
               onPreviewRequest={(target) => {
+                setMontage(null);
                 const asset = mediaAssets.find((candidate) => candidate.id === target.assetId && candidate.kind === "video");
                 if (!asset) { setError({ code: "preview_asset_missing", message: "No se encontró el video importado de este clip." }); return; }
                 setSelectedMedia(asset);
