@@ -1,45 +1,57 @@
 # Creator OS
 
-Creator OS is a local-first, open-source workspace for creators: scripting, voice, editing, shorts, thumbnails, publishing, and analytics in one desktop application.
+**Creator OS** es un editor de video de escritorio, *local-first* y open source, enfocado en flujos de trabajo de creadores de contenido.
 
-## Status
+**Estado:** prototipo funcional v0.8 integrado en `main`; **no es todavía una versión de producción ni un instalador validado**. Pruebas nativas multiplataforma pendientes.
 
-`v0.0.1` — foundation phase.
+## Módulos implementados
 
-## Core principles
+- Proyectos locales: crear, abrir, recientes, versión de esquema/migración.
+- Importación de medios y metadatos con FFprobe; preview local mediante un gateway de loopback.
+- Interfaz claro/oscuro, identidad **Totem Cut**, navegación de escritorio.
+- Timeline de video/audio con clips, división, recorte, mover, borrar y undo/redo persistido.
+- Exportación MP4 H.264/AAC con FFmpeg para **una pista de video continua**.
+- Transcripción de segmentos temporizados con proveedor Python opcional `faster-whisper`, CPU-first, con consentimiento previo para descargar modelos.
+- Exportación de subtítulos SRT y WebVTT.
+- Previsualización CC sincronizada **con el medio original seleccionado**, no con el montaje del timeline.
 
-- Local-first by default.
-- macOS-native feel, Creator OS identity.
-- Domain logic is independent from UI, frameworks, media engines, AI models, and social APIs.
-- AI proposes typed operations; the core validates and executes them.
-- Every difficult-to-reverse architecture decision requires an ADR.
+## Arquitectura
 
-See [`CONSTITUTION.md`](./CONSTITUTION.md) and [`docs/architecture/ARCHITECTURE.md`](./docs/architecture/ARCHITECTURE.md).
+| Capa | Tecnología |
+| --- | --- |
+| Escritorio | Tauri 2 + React + TypeScript |
+| Contratos/dominio | Crates Rust independientes |
+| IA local opcional | Worker Python, proveedores reemplazables |
+| Medios | Adaptador FFmpeg/FFprobe |
+| Persistencia | Archivos de proyecto locales, esquema versionado |
+| Diseño | Design tokens compartidos, temas claro y oscuro |
 
-## Planned stack
+Dominio sin dependencias de React, Tauri, FFmpeg ni proveedores IA. Nunca se envían medios a una API para las funciones locales actuales. Las fuentes originales no se alteran por las operaciones del editor.
 
-- Desktop: Tauri v2 + React + TypeScript
-- Core: Rust
-- AI worker: Python
-- Data: SQLite
-- Media: FFmpeg adapter
-- Local AI: provider-based (Ollama, Whisper, voice engines, etc.)
+## Desarrollo
 
-## Repository layout
+Requisitos: Node 22, pnpm 9.15, toolchain Rust y dependencias del sistema para Tauri 2. FFmpeg/FFprobe se instalan por separado para medios/exportación. Python/Whisper son opcionales y no se descargan sin permiso.
 
-```text
-apps/desktop/       Desktop UI and Tauri shell
-packages/           Shared TypeScript packages and design system
-crates/             Rust domain/application/infrastructure crates
-ai/worker/          Local Python AI worker
-docs/architecture/  Architecture documentation
-docs/adr/           Architecture Decision Records
+```sh
+pnpm install --frozen-lockfile
+pnpm typecheck
+pnpm web:build
+cargo test --workspace
+pnpm --dir apps/desktop exec tauri dev
 ```
 
-## Development state
+### Política de ramas
 
-The repository is intentionally starting small. The first milestone is a reliable project system: create, save, close, reopen, and migrate Creator OS projects before adding editing or AI features.
+- `main`: versión integrada y validada.
+- `develop`: **única rama activa de trabajo**; PRs directos `develop → main`, sin PRs apilados.
 
-## License
+Ver [Política de ramas](docs/development/BRANCH_POLICY.md), [Constitución](CONSTITUTION.md), [arquitectura](docs/architecture/ARCHITECTURE.md) y [ADRs](docs/adr/).
 
-MIT for Creator OS-owned code unless a file states otherwise. Third-party components retain their original licenses and notices.
+### Prueba nativa
+
+El flujo [Native desktop build](.github/workflows/native-desktop.yml) verifica la compilación real de Tauri en Linux, pero **no equivale** a verificar su funcionamiento en Windows/macOS ni a una prueba manual completa. Ver [lista de aceptación nativa](docs/quality/NATIVE_ACCEPTANCE.md).
+
+## Licencia
+
+MIT para código original de Creator OS, salvo indicación distinta. FFmpeg, Whisper y otros proveedores conservan sus respectivas licencias; hay requisitos específicos antes de distribuir binarios y modelos.
+

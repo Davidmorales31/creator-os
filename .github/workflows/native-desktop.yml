@@ -1,0 +1,71 @@
+name: Native desktop build
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "apps/desktop/**"
+      - "crates/**"
+      - "packages/ui/**"
+      - "Cargo.toml"
+      - "Cargo.lock"
+      - "pnpm-lock.yaml"
+      - "package.json"
+      - "scripts/check-native-assets.py"
+      - ".github/workflows/native-desktop.yml"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  linux-native:
+    name: Compile Tauri 2 native (Linux)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 9.15.0
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          shared-key: creator-os-native-linux
+          cache-on-failure: false
+      - name: Install Linux WebKit/Tauri and media dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y \
+            libwebkit2gtk-4.1-dev \
+            build-essential \
+            curl \
+            wget \
+            file \
+            libxdo-dev \
+            libssl-dev \
+            libayatana-appindicator3-dev \
+            librsvg2-dev \
+            ffmpeg \
+            python3
+      - name: Verify native icons and Tauri metadata
+        run: python3 scripts/check-native-assets.py
+      - name: Install frontend dependencies
+        run: pnpm install --frozen-lockfile
+      - name: Verify offline local media tools are available
+        run: |
+          ffmpeg -hide_banner -version | head -n 1
+          ffprobe -hide_banner -version | head -n 1
+      - name: Compile actual Tauri desktop executable (without installer)
+        run: pnpm --dir apps/desktop exec tauri build --no-bundle
+      - name: Verify desktop executable is an ELF binary
+        run: |
+          test -s target/release/creator-os-desktop
+          test -x target/release/creator-os-desktop
+          file target/release/creator-os-desktop
+          file target/release/creator-os-desktop | grep -q 'ELF'
+          echo "Native Tauri Linux binary built successfully."
