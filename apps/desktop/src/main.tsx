@@ -12,6 +12,7 @@ type Theme = "light" | "dark";
 
 function App() {
   const [view, setView] = useState<View>("projects");
+  const [search, setSearch] = useState("");
   const [theme, setTheme] = useState<Theme>("light");
   const [recentProjects, setRecentProjects] = useState<ProjectSummary[]>([]);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
@@ -104,16 +105,22 @@ function App() {
           <span className="brand-copy"><strong>Creator OS</strong><small>Creator workspace</small></span>
         </div>
         <div className="nav-group">
-          <span className="nav-caption">WORKSPACE</span>
+          <span className="nav-caption">NAVEGACIÓN</span>
+          <button type="button" className={`nav-item ${view === "projects" ? "nav-item-active" : ""}`} onClick={() => setView("projects")}><span className="nav-symbol" aria-hidden="true">⌂</span> Inicio</button>
           <button type="button" className={`nav-item ${view === "projects" ? "nav-item-active" : ""}`} aria-current={view === "projects" ? "page" : undefined} onClick={() => setView("projects")}>
             <span className="nav-symbol" aria-hidden="true">▦</span> Proyectos
           </button>
           <button type="button" className={`nav-item ${view === "workspace" ? "nav-item-active" : ""}`} aria-current={view === "workspace" ? "page" : undefined} onClick={() => setView("workspace")} disabled={!activeProject}>
             <span className="nav-symbol" aria-hidden="true">▤</span> Estudio
           </button>
-          <span className="nav-caption nav-caption-secondary">PRÓXIMAMENTE</span>
+          <span className="nav-caption nav-caption-secondary">HERRAMIENTAS</span>
           <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">◈</span> Guiones IA <span className="nav-soon">Pronto</span></span>
-          <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">⇧</span> Publicaciones <span className="nav-soon">Pronto</span></span>
+          <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">♫</span> Voice Studio <span className="nav-soon">Pronto</span></span>
+          <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">▣</span> Biblioteca <span className="nav-soon">Pronto</span></span>
+          <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">◧</span> Shorts <span className="nav-soon">Pronto</span></span>
+          <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">▧</span> Miniaturas <span className="nav-soon">Pronto</span></span>
+          <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">⇧</span> Publicar <span className="nav-soon">Pronto</span></span>
+          <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">▥</span> Analíticas <span className="nav-soon">Pronto</span></span>
         </div>
         <div className="sidebar-footer">
           <div className="privacy-line"><span className="status-dot" aria-hidden="true" /> Local-first · Tus archivos</div>
@@ -127,6 +134,7 @@ function App() {
       <main className="app-main">
         <header className="app-toolbar">
           <div className="toolbar-breadcrumb"><span>Creator OS</span><span className="breadcrumb-divider">/</span><strong>{view === "workspace" ? activeProject?.name ?? "Estudio" : "Proyectos"}</strong></div>
+          <label className="toolbar-search"><span aria-hidden="true">⌕</span><input aria-label="Buscar proyectos" placeholder="Buscar en tus proyectos..." value={search} onChange={(event) => {setSearch(event.target.value); if (view !== "projects") setView("projects");}} /></label>
           <div className="toolbar-actions">
             <span className="toolbar-platform">Desktop · Local</span>
             {view === "workspace" && <button type="button" className="button button-primary" onClick={() => void handleImportMedia()} disabled={!activeProject || mediaBusy}>{mediaBusy ? "Importando…" : "+ Importar medios"}</button>}
@@ -139,10 +147,17 @@ function App() {
           <div className="content-scroll">
             <div className="page-intro">
               <span className="eyebrow">TU ESPACIO CREATIVO</span>
-              <h1>Mis proyectos<span className="title-point">.</span></h1>
-              <p>Todo lo que necesitas para crear, editar y publicar. En un solo lugar.</p>
+              <h1>Bienvenido a Creator OS<span className="title-point">.</span></h1>
+              <p>Tu estudio completo para crear, editar y publicar contenido.</p>
             </div>
-            <div className="projects-layout">
+            <div className="quick-actions" aria-label="Accesos rápidos">
+              <div className="quick-action-card quick-action-primary"><span className="quick-icon" aria-hidden="true">＋</span><strong>Nuevo proyecto</strong><small>Video, Short o Serie</small></div>
+              <div className="quick-action-card quick-action-future"><span className="quick-icon" aria-hidden="true">✎</span><strong>Generar Guion</strong><small>Próximamente</small></div>
+              <div className="quick-action-card quick-action-future"><span className="quick-icon" aria-hidden="true">◉</span><strong>Clonar mi voz</strong><small>Próximamente</small></div>
+              <div className="quick-action-card quick-action-future"><span className="quick-icon" aria-hidden="true">▯</span><strong>Crear Short</strong><small>Próximamente</small></div>
+              <div className="quick-action-card quick-action-future"><span className="quick-icon" aria-hidden="true">♧</span><strong>Publicar</strong><small>Próximamente</small></div>
+            </div>
+            <div className="home-grid"><div className="projects-layout">
               <section className="panel new-project-panel" aria-labelledby="new-project-title">
                 <span className="feature-icon" aria-hidden="true">＋</span>
                 <span className="eyebrow">EMPEZAR ALGO NUEVO</span>
@@ -156,19 +171,19 @@ function App() {
               </section>
               <section className="panel recent-panel" aria-labelledby="recent-title">
                 <div className="section-heading"><div><span className="eyebrow">CONTINÚA CREANDO</span><h2 id="recent-title">Recientes</h2></div><button type="button" className="button button-ghost" onClick={() => void refreshRecentProjects()} disabled={busy}>Actualizar</button></div>
-                {recentProjects.length === 0 ? (
+                {recentProjects.filter((project) => project.name.toLowerCase().includes(search.toLowerCase())).length === 0 ? (
                   <div className="empty-state"><span className="empty-glyph" aria-hidden="true">▦</span><strong>Aún no hay proyectos</strong><p>Crea tu primer proyecto para comenzar.</p></div>
                 ) : (
-                  <div className="recent-list">{recentProjects.map((project) => <button type="button" key={project.id} className="recent-item" onClick={() => void handleOpenProject(project.id)} disabled={busy}><span className="project-icon" aria-hidden="true">◧</span><span className="recent-copy"><strong>{project.name}</strong><small>{new Date(project.updatedAt).toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })}</small></span><span className="recent-arrow" aria-hidden="true">›</span></button>)}</div>
+                  <div className="recent-list">{recentProjects.filter((project) => project.name.toLowerCase().includes(search.toLowerCase())).map((project) => <button type="button" key={project.id} className="recent-item" onClick={() => void handleOpenProject(project.id)} disabled={busy}><span className="project-icon" aria-hidden="true">◧</span><span className="recent-copy"><strong>{project.name}</strong><small>{new Date(project.updatedAt).toLocaleString("es-CO", { dateStyle: "medium", timeStyle: "short" })}</small></span><span className="recent-arrow" aria-hidden="true">›</span></button>)}</div>
                 )}
               </section>
-            </div>
+            </div><aside className="home-activity"><section className="panel activity-card"><span className="eyebrow">ACTIVIDAD RECIENTE</span><h2>Tu actividad</h2><div className="activity-empty">Aún no hay tareas procesadas. Aquí aparecerán transcripciones, renders y exportaciones.</div></section><section className="panel status-card"><span className="eyebrow">ESTADO DEL SISTEMA</span><div className="status-entry"><span className="status-dot"/> Editor <span>Disponible</span></div><div className="status-entry"><span className="status-dot"/> Proyectos <span>Local</span></div><div className="status-entry"><span className="status-dot"/> Medios <span>Listo</span></div><div className="status-entry"><span className="status-dot status-inactive"/> IA local <span>Próximamente</span></div></section></aside></div>
           </div>
         ) : activeProject ? (
           <div className="content-scroll workspace-page">
             <div className="workspace-header"><div><span className="eyebrow">ESTUDIO / PROYECTO ACTIVO</span><h1>{activeProject.name}<span className="title-point">.</span></h1><p>Previsualiza tu material y prepara la siguiente edición.</p></div><span className="project-format">{activeProject.settings.width} × {activeProject.settings.height} · {activeProject.settings.fps} fps</span></div>
+            <div className="editor-actions" aria-label="Herramientas futuras"><span className="editor-chip">Eliminar silencios · próximamente</span><span className="editor-chip">Auto subtítulos · próximamente</span><span className="editor-chip">Buscar B-roll · próximamente</span><span className="editor-chip">Reencuadrar 9:16 · próximamente</span></div>
             <div className="creator-workspace">
-              <MediaPlayer projectId={activeProject.id} asset={selectedMedia}/>
               <section className="panel media-panel" aria-labelledby="media-title">
                 <div className="section-heading"><div><span className="eyebrow">BIBLIOTECA LOCAL</span><h2 id="media-title">Tus medios <span className="media-count">{mediaAssets.length}</span></h2></div></div>
                 {mediaAssets.length === 0 ? (
@@ -187,7 +202,10 @@ function App() {
                 )}
                 <div className="media-panel-footer">Los archivos permanecen en su ubicación original.</div>
               </section>
+              <MediaPlayer projectId={activeProject.id} asset={selectedMedia}/>
+              <aside className="panel inspector-panel"><div className="section-heading"><div><span className="eyebrow">INSPECTOR</span><h2>Propiedades</h2></div></div>{selectedMedia ? <dl className="inspector-fields"><div><dt>Archivo</dt><dd title={selectedMedia.fileName}>{selectedMedia.fileName}</dd></div><div><dt>Tipo</dt><dd>{selectedMedia.kind}</dd></div><div><dt>Duración</dt><dd>{formatDuration(selectedMedia.durationSeconds)}</dd></div><div><dt>Resolución</dt><dd>{selectedMedia.width && selectedMedia.height ? `${selectedMedia.width} × ${selectedMedia.height}` : "—"}</dd></div><div><dt>FPS</dt><dd>{selectedMedia.fps?.toFixed(2) ?? "—"}</dd></div></dl> : <p>Selecciona un archivo para ver sus propiedades.</p>}</aside>
             </div>
+            <section className="panel timeline-preview" aria-label="Línea de tiempo futura"><div className="section-heading"><div><span className="eyebrow">EDICIÓN</span><h2>Timeline</h2></div><span className="timeline-soon">Disponible en Issue #4</span></div><div className="timeline-placeholder"><div className="timeline-ruler">00:00 <span>02:00</span><span>04:00</span><span>06:00</span><span>08:00</span></div><div className="timeline-track"><span>Subtítulos</span><i/></div><div className="timeline-track"><span>Video</span><i/></div><div className="timeline-track"><span>Audio</span><i/></div></div></section>
             <div className="workspace-hint"><span aria-hidden="true">⌘</span> Selecciona un video y usa Espacio para reproducir; ← → para avanzar o retroceder 5 s.</div>
           </div>
         ) : null}
