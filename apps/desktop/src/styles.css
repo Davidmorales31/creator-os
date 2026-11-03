@@ -306,3 +306,6 @@ button.nav-item:hover:not(:disabled) { background: var(--creator-surface-raised)
 .caption-status{color:var(--creator-text-tertiary);font-size:11px}
 .caption-error{color:var(--creator-danger);font-size:11px}
 @media(max-width:560px){.caption-overlay{bottom:var(--creator-space-1);padding:0 var(--creator-space-1)}.caption-text{font-size:12px}.caption-version select{max-width:175px}}
+
+.timeline-preview-note{margin:var(--creator-space-1) 0 0;color:var(--creator-text-tertiary);font-size:11px}
+.timeline-preview-notice{padding:var(--creator-space-1);border:1px solid var(--creator-border);border-radius:var(--creator-radius-sm);color:var(--creator-text-secondary);background:var(--creator-surface-muted);font-size:11px}

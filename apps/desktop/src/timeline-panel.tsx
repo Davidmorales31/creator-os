@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { formatDuration, type MediaAsset } from "./media";
 import { normalizeCommandError } from "./projects";
 import { editTimeline, getTimeline, type Timeline, type TimelineClip, type TimelineEdit, type TrackKind } from "./timeline";
+import { previewAtFrame, previewClipAt, timelineFrameFromSource, type TimelinePreviewTarget } from "./timeline-preview";
 
 type Props = {
   projectId: string;
@@ -9,6 +10,9 @@ type Props = {
   mediaAssets: MediaAsset[];
   selectedAsset: MediaAsset | null;
   onError: (message: string) => void;
+  previewRequest: (TimelinePreviewTarget & { requestId: number }) | null;
+  previewSourceTime: number | null;
+  onPreviewRequest: (target: TimelinePreviewTarget) => void;
 };
 
 const PIXELS_PER_SECOND = 24;
@@ -20,17 +24,19 @@ function lastFrame(clips: TimelineClip[], trackId: string) {
   return clips.filter((c) => c.trackId === trackId).reduce((max, c) => Math.max(max, c.startFrame + c.durationFrames), 0);
 }
 
-export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onError }: Props) {
+export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onError, previewRequest, previewSourceTime, onPreviewRequest }: Props) {
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [busy, setBusy] = useState(false);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [cursorSeconds, setCursorSeconds] = useState(0);
   const [positionDraft, setPositionDraft] = useState("0");
+  const [previewNotice, setPreviewNotice] = useState<string | null>(null);
 
   useEffect(() => {
     let disposed = false;
     setTimeline(null);
     setSelectedClipId(null);
+    setPreviewNotice(null);
     void getTimeline(projectId).then((value) => {
       if (!disposed) setTimeline(value);
     }).catch((cause: unknown) => {
@@ -42,6 +48,36 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
   }, [projectId]);
 
   const selectedClip = timeline?.clips.find((c) => c.id === selectedClipId) ?? null;
+  useEffect(() => {
+    if (!previewRequest || previewSourceTime === null || !timeline
+      || !timeline.clips.some((clip) => clip.id === previewRequest.clipId
+        && clip.assetId === previewRequest.assetId
+        && clip.startFrame === previewRequest.clipStartFrame
+        && clip.sourceInFrame === previewRequest.sourceInFrame
+        && clip.durationFrames === previewRequest.durationFrames)) return;
+    const frame = timelineFrameFromSource(previewRequest, previewSourceTime, fps);
+    if (frame !== null) setCursorSeconds(frame / fps);
+  }, [previewRequest, previewSourceTime, timeline, fps]);
+
+  function seekTimelineFrame(frame: number) {
+    if (!timeline) return;
+    setCursorSeconds(frame / fps);
+    const target = previewAtFrame(timeline, frame, fps);
+    if (!target) { setPreviewNotice("No hay clip de video en ese punto."); return; }
+    setPreviewNotice(null);
+    setSelectedClipId(target.clipId);
+    onPreviewRequest(target);
+  }
+
+  function selectTimelineClip(clip: TimelineClip) {
+    setSelectedClipId(clip.id);
+    if (clip.kind !== "video") { setPreviewNotice("La previsualización de clips de audio llegará después."); return; }
+    const target = previewClipAt(clip, clip.startFrame, fps);
+    if (!target) { setPreviewNotice("El clip no tiene un rango de previsualización válido."); return; }
+    setPreviewNotice(null);
+    setCursorSeconds(clip.startFrame / fps);
+    onPreviewRequest(target);
+  }
   useEffect(() => { setPositionDraft(selectedClip ? String(Number((selectedClip.startFrame / fps).toFixed(3))) : "0"); }, [selectedClip?.id, selectedClip?.startFrame, fps]);
   const assetNames = useMemo(() => new Map(mediaAssets.map((asset) => [asset.id, asset.fileName])), [mediaAssets]);
   const totalFrames = timeline?.clips.reduce((max, clip) => Math.max(max, clip.startFrame + clip.durationFrames), 0) ?? 0;
@@ -166,7 +202,7 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
             <div className="timeline-ruler-live">
               {Array.from({ length: Math.ceil(width / (PIXELS_PER_SECOND * 5)) + 1 }, (_, i) => (
                 <button key={i} type="button" className="timeline-tick" style={{ left: i * 5 * PIXELS_PER_SECOND }}
-                  onClick={() => setCursorSeconds(i * 5)} title={"Mover cursor a " + i * 5 + " segundos"}>{time(i * 5 * fps, fps)}</button>
+                  onClick={() => seekTimelineFrame(i * 5 * fps)} title={"Previsualizar timeline a " + i * 5 + " segundos"}>{time(i * 5 * fps, fps)}</button>
               ))}
             </div>
             {timeline?.tracks.map((track) => (
@@ -174,7 +210,7 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
                 {timeline.clips.filter((clip) => clip.trackId === track.id).map((clip) => (
                   <button key={clip.id} type="button" className={`timeline-clip timeline-clip-${track.kind} ${selectedClipId === clip.id ? "timeline-clip-selected" : ""}`}
                     aria-pressed={selectedClipId === clip.id} style={{ left: clip.startFrame / fps * PIXELS_PER_SECOND, width: Math.max(8, clip.durationFrames / fps * PIXELS_PER_SECOND) }}
-                    title={assetNames.get(clip.assetId) ?? clip.assetId} onClick={() => setSelectedClipId(clip.id)}>
+                    title={assetNames.get(clip.assetId) ?? clip.assetId} onClick={() => selectTimelineClip(clip)}>
                     <strong>{assetNames.get(clip.assetId) ?? "Medio"}</strong><small>{time(clip.durationFrames, fps)}</small>
                   </button>
                 ))}
@@ -184,6 +220,8 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
           </div>
         </div>
       </div>
+      {previewNotice && <p role="status" className="timeline-preview-notice">{previewNotice}</p>}
+      <p className="timeline-preview-note">La previsualización muestra un clip individual, no la reproducción continua del montaje.</p>
       {!timeline ? <p className="timeline-help">Cargando timeline…</p> : timeline.clips.length === 0 ?
         <p className="timeline-help">Selecciona un video o audio de la biblioteca y pulsa “Añadir clip”. Los archivos originales no se modifican.</p> :
         <p className="timeline-help">Selecciona un clip para moverlo, dividirlo o recortarlo. Los cambios se guardan en el proyecto. Revisión {timeline.revision}.</p>}

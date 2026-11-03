@@ -3,17 +3,22 @@ import { getMediaPreviewUrl, type MediaAsset } from "./media";
 import { listTranscripts, type TranscriptRecord } from "./transcription";
 import { captionAt, eligibleCaptions } from "./caption-cues";
 import { normalizeCommandError } from "./projects";
+import type { TimelinePreviewTarget } from "./timeline-preview";
 
 type FitMode = "fit" | "fill";
-type MediaPlayerProps = { projectId: string; asset: MediaAsset | null; captionRevision?: number };
+type MediaPlayerProps = { projectId: string; asset: MediaAsset | null; captionRevision?: number;
+  previewRequest?: (TimelinePreviewTarget & { requestId: number }) | null;
+  onSourceTimeChange?: (seconds: number) => void;
+};
 function formatClock(seconds: number): string {
   if (!Number.isFinite(seconds)) return "0:00";
   const total = Math.max(0, Math.floor(seconds)); const hours = Math.floor(total / 3600);
   const minutes = Math.floor((total % 3600) / 60); const secs = total % 60;
   return hours > 0 ? `${hours}:${minutes.toString().padStart(2, "0")}:${secs.toString().padStart(2, "0")}` : `${minutes}:${secs.toString().padStart(2, "0")}`;
 }
-export function MediaPlayer({ projectId, asset, captionRevision = 0 }: MediaPlayerProps) {
+export function MediaPlayer({ projectId, asset, captionRevision = 0, previewRequest, onSourceTimeChange }: MediaPlayerProps) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const readySourceAsset = useRef<string | null>(null);
   const [transcripts, setTranscripts] = useState<TranscriptRecord[]>([]);
   const [selectedTranscriptId, setSelectedTranscriptId] = useState<string | null>(null);
   const [captionsEnabled, setCaptionsEnabled] = useState(false);
@@ -23,7 +28,7 @@ export function MediaPlayer({ projectId, asset, captionRevision = 0 }: MediaPlay
   const [error, setError] = useState<string | null>(null); const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0); const [duration, setDuration] = useState(0); const [fitMode, setFitMode] = useState<FitMode>("fit");
   useEffect(() => {
-    let cancelled = false; setSourceUrl(null); setError(null); setPlaying(false); setCurrentTime(0); setDuration(asset?.durationSeconds ?? 0);
+    let cancelled = false; readySourceAsset.current = null; setSourceUrl(null); setError(null); setPlaying(false); setCurrentTime(0); setDuration(asset?.durationSeconds ?? 0);
     if (!asset || asset.kind !== "video") return () => undefined;
     setLoading(true);
     void getMediaPreviewUrl(projectId, asset.id).then((url) => { if (!cancelled) setSourceUrl(url); })
@@ -62,6 +67,18 @@ export function MediaPlayer({ projectId, asset, captionRevision = 0 }: MediaPlay
     return () => { alive = false; };
   }, [projectId, asset?.id, asset?.kind, captionRevision]);
 
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !previewRequest || readySourceAsset.current !== previewRequest.assetId
+      || asset?.id !== previewRequest.assetId || video.readyState < 1) return;
+    video.pause(); // Scrubbing a clip does not pretend to play the whole montage.
+    const maximum = Number.isFinite(video.duration) ? video.duration : (asset.durationSeconds ?? 0);
+    const seconds = Math.min(Math.max(previewRequest.sourceSeconds, 0), Math.max(maximum, 0));
+    video.currentTime = seconds;
+    setCurrentTime(seconds);
+    onSourceTimeChange?.(seconds);
+  }, [previewRequest, asset?.id]);
+
   async function togglePlayback() {
     const video = videoRef.current; if (!video) return;
     if (video.paused) { try { await video.play(); } catch { setError("Playback could not start. The media codec may not be supported by the system WebView."); } } else { video.pause(); }
@@ -69,7 +86,7 @@ export function MediaPlayer({ projectId, asset, captionRevision = 0 }: MediaPlay
   function seekTo(nextTime: number) {
     const video = videoRef.current; if (!video || !Number.isFinite(nextTime)) return;
     const max = Number.isFinite(video.duration) ? video.duration : duration; const clamped = Math.min(Math.max(nextTime, 0), Math.max(max, 0));
-    video.currentTime = clamped; setCurrentTime(clamped);
+    video.currentTime = clamped; setCurrentTime(clamped); onSourceTimeChange?.(clamped);
   }
   function handleKeyDown(event: KeyboardEvent<HTMLElement>) {
     if (event.key === " ") { event.preventDefault(); void togglePlayback(); return; }
@@ -79,13 +96,25 @@ export function MediaPlayer({ projectId, asset, captionRevision = 0 }: MediaPlay
   if (!asset) return <section className="panel player-panel player-empty" aria-label="Video preview"><span className="eyebrow">Preview</span><div className="player-empty-copy"><strong>Select a video</strong><span>Choose an imported video from the Media library.</span></div></section>;
   if (asset.kind !== "video") return <section className="panel player-panel player-empty" aria-label="Video preview"><span className="eyebrow">Preview</span><div className="player-empty-copy"><strong>{asset.fileName}</strong><span>Video Preview currently supports video assets. Audio and image preview come later.</span></div></section>;
   return <section className="panel player-panel" aria-label={`Preview ${asset.fileName}`} tabIndex={0} onKeyDown={handleKeyDown}>
-    <div className="player-heading"><div><span className="eyebrow">Preview</span><strong title={asset.fileName}>{asset.fileName}</strong></div><span className="shortcut-hint">Space · ←/→ 5s</span></div>
+    <div className="player-heading"><div><span className="eyebrow">{previewRequest?.assetId === asset.id ? "Preview · clip del timeline" : "Preview · archivo original"}</span><strong title={asset.fileName}>{asset.fileName}</strong></div><span className="shortcut-hint">Space · ←/→ 5s</span></div>
     <div className={`video-stage video-stage-${fitMode}`}>
       {loading && <div className="player-overlay">Preparing local preview…</div>}
       {error && <div className="player-overlay player-error">{error}</div>}
       {sourceUrl && <video ref={videoRef} src={sourceUrl} preload="metadata" playsInline onClick={() => void togglePlayback()}
-        onLoadedMetadata={(event) => { const nextDuration = event.currentTarget.duration; if (Number.isFinite(nextDuration)) setDuration(nextDuration); }}
-        onTimeUpdate={(event) => setCurrentTime(event.currentTarget.currentTime)} onSeeked={(event) => setCurrentTime(event.currentTarget.currentTime)} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}
+        onLoadedMetadata={(event) => {
+          const video = event.currentTarget;
+          const nextDuration = video.duration;
+          readySourceAsset.current = asset.id;
+          if (Number.isFinite(nextDuration)) setDuration(nextDuration);
+          if (previewRequest?.assetId === asset.id) {
+            const requestedTime = Math.min(Math.max(previewRequest.sourceSeconds, 0), Number.isFinite(nextDuration) ? nextDuration : (asset.durationSeconds ?? 0));
+            video.currentTime = requestedTime;
+            setCurrentTime(requestedTime);
+            onSourceTimeChange?.(requestedTime);
+          }
+        }}
+        onTimeUpdate={(event) => { setCurrentTime(event.currentTarget.currentTime); onSourceTimeChange?.(event.currentTarget.currentTime); }}
+        onSeeked={(event) => { setCurrentTime(event.currentTarget.currentTime); onSourceTimeChange?.(event.currentTarget.currentTime); }} onPlay={() => setPlaying(true)} onPause={() => setPlaying(false)} onEnded={() => setPlaying(false)}
         onError={() => setError("This video could not be decoded by the system WebView. Creator OS will add proxy generation for unsupported codecs.")} />}
       {activeCaption && <div className="caption-overlay" aria-label="Subtítulos de previsualización"><span className="caption-text">{activeCaption.text}</span></div>}
     </div>

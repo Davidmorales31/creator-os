@@ -21,6 +21,8 @@ jobs:
       - run: pnpm web:build
       - name: Verify subtitle timing boundaries
         run: node --experimental-strip-types scripts/test-captions.mjs
+      - name: Verify timeline-to-source mapping
+        run: node --experimental-strip-types scripts/test-timeline-preview.mjs
 
   rust:
     runs-on: ubuntu-latest
