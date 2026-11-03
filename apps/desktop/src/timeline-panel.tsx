@@ -25,6 +25,7 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
   const [busy, setBusy] = useState(false);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
   const [cursorSeconds, setCursorSeconds] = useState(0);
+  const [positionDraft, setPositionDraft] = useState("0");
 
   useEffect(() => {
     let disposed = false;
@@ -41,6 +42,7 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
   }, [projectId]);
 
   const selectedClip = timeline?.clips.find((c) => c.id === selectedClipId) ?? null;
+  useEffect(() => { setPositionDraft(selectedClip ? String(Number((selectedClip.startFrame / fps).toFixed(3))) : "0"); }, [selectedClip?.id, selectedClip?.startFrame, fps]);
   const assetNames = useMemo(() => new Map(mediaAssets.map((asset) => [asset.id, asset.fileName])), [mediaAssets]);
   const totalFrames = timeline?.clips.reduce((max, clip) => Math.max(max, clip.startFrame + clip.durationFrames), 0) ?? 0;
   const width = Math.max(MIN_VISUAL_SECONDS * PIXELS_PER_SECOND, (totalFrames / fps + 5) * PIXELS_PER_SECOND);
@@ -88,6 +90,17 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
     const startFrame = Math.max(0, selectedClip.startFrame + byFrames);
     void dispatch({ action: "apply", operation: { type: "moveClip", clipId: selectedClip.id, trackId, startFrame } });
   }
+  function addTrack(kind: TrackKind) {
+    if (!timeline) return;
+    const count = timeline.tracks.filter((t) => t.kind === kind).length;
+    void dispatch({ action: "apply", operation: { type: "addTrack", track: { id: crypto.randomUUID(), name: `${kind === "video" ? "Video" : "Audio"} ${count + 1}`, kind } } });
+  }
+  function commitPosition() {
+    if (!selectedClip) return;
+    const value = Number(positionDraft);
+    if (!Number.isFinite(value) || value < 0) { onError("La posición debe ser un número positivo."); setPositionDraft(String(selectedClip.startFrame / fps)); return; }
+    move(snap(value, fps) - selectedClip.startFrame);
+  }
   function split() {
     if (!selectedClip || selectedClip.durationFrames < 2) return;
     const splitAt = selectedClip.startFrame + Math.floor(selectedClip.durationFrames / 2);
@@ -118,6 +131,8 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
       <div className="timeline-toolbar">
         <div><span className="eyebrow">EDICIÓN NO DESTRUCTIVA</span><h2>Timeline <span className="timeline-count">{timeline?.clips.length ?? 0} clips</span></h2></div>
         <div className="timeline-tools">
+          <button type="button" className="secondary-button" onClick={() => addTrack("video")} disabled={!canEdit} title="Crear pista de video">+ Pista video</button>
+          <button type="button" className="secondary-button" onClick={() => addTrack("audio")} disabled={!canEdit} title="Crear pista de audio">+ Pista audio</button>
           <button type="button" className="button button-primary" onClick={addAsset} disabled={!canEdit || !selectedAsset} title="Añadir el medio seleccionado a su pista">+ Añadir clip</button>
           <button type="button" className="secondary-button" onClick={() => void dispatch({ action: "undo" }, null)} disabled={!canEdit || (timeline?.undoStack.length ?? 0) === 0} title="Deshacer último cambio">↶ Deshacer</button>
           <button type="button" className="secondary-button" onClick={() => void dispatch({ action: "redo" }, null)} disabled={!canEdit || (timeline?.redoStack.length ?? 0) === 0} title="Rehacer último cambio">↷ Rehacer</button>
@@ -134,8 +149,8 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
       {selectedClip && timeline && (
         <div className="timeline-selection">
           <span>Seleccionado: {assetNames.get(selectedClip.assetId) ?? selectedClip.assetId}</span>
-          <label>Posición (s) <input type="number" min={0} step={1 / fps} value={Number((selectedClip.startFrame / fps).toFixed(3))}
-            onChange={(event) => { const value = Number(event.target.value); if (Number.isFinite(value)) move(snap(value, fps) - selectedClip.startFrame); }} disabled={!canEdit} /></label>
+          <label>Posición (s) <input type="number" min={0} step={1 / fps} value={positionDraft}
+            onChange={(event) => setPositionDraft(event.target.value)} onBlur={commitPosition} onKeyDown={(event) => { if (event.key === "Enter") event.currentTarget.blur(); }} disabled={!canEdit} /></label>
           <label>Pista <select value={selectedClip.trackId} onChange={(event) => move(0, event.target.value)} disabled={!canEdit}>
             {timeline.tracks.filter((track) => track.kind === selectedClip.kind).map((track) => <option key={track.id} value={track.id}>{track.name}</option>)}
           </select></label>
