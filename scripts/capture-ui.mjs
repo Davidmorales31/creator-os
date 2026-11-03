@@ -41,6 +41,22 @@ await page.addInitScript(() => {
       audioCodec: "aac",
       sampleRate: null,
       channels: null
+    },
+    {
+      id: "550e8400-e29b-41d4-a716-446655440099",
+      fileName: "second-scene-vp9.webm",
+      sourcePath: "/fixtures/second-scene-vp9.webm",
+      kind: "video",
+      importedAt: "2026-11-03T12:01:00.000Z",
+      fileSizeBytes: 910000,
+      durationSeconds: 6,
+      width: 480,
+      height: 270,
+      fps: 24,
+      videoCodec: "vp9",
+      audioCodec: null,
+      sampleRate: null,
+      channels: null
     }
   ];
   let timeline = { schemaVersion: 1, revision: 0, tracks: [{ id: "video-1", name: "Video 1", kind: "video" }, { id: "audio-1", name: "Audio 1", kind: "audio" }], clips: [], undoStack: [], redoStack: [] };
@@ -87,7 +103,7 @@ await page.addInitScript(() => {
           }
           return timeline;
         }
-        case "get_media_preview_url": return "/preview.webm";
+        case "get_media_preview_url": return args.assetId === assets[1].id ? "/preview-next.webm" : "/preview.webm";
         default: throw new Error("Unknown mock command: " + command);
       }
     }
@@ -131,16 +147,30 @@ await page.locator(".caption-overlay").waitFor();
 await page.getByRole("button", { name: "Exportar .srt" }).click();
 await page.getByText(/Subtítulos guardados en/).waitFor();
 
+// Two real, different WebM sources (VP8 and VP9) with a mocked Tauri catalog.
+await page.getByRole("button", { name: /second-scene-vp9.webm/ }).click();
 await page.getByRole("button", { name: "+ Añadir clip" }).click();
 await page.locator(".timeline-clip").nth(1).waitFor();
 await page.getByRole("button", { name: "Reproducir montaje" }).click();
 await page.getByText("Reproduciendo clip 1 de 2", { exact: false }).waitFor();
 await page.getByText("Preview · montaje secuencial").waitFor();
-// This is an actual HTMLMediaElement event on the real preview; native data is mocked.
+await page.waitForFunction(() => {
+  const element = document.querySelector("video");
+  return element && !element.paused && element.currentSrc.includes("/preview.webm");
+});
+// Keep the old node to simulate an obsolete browser event after the handoff.
+await page.evaluate(() => { window.__obsoleteVideo = document.querySelector("video"); });
 await page.locator("video").evaluate((video) => video.dispatchEvent(new Event("ended", { bubbles: true })));
+await page.getByText("Reproduciendo clip 2 de 2", { exact: false }).waitFor();
+await page.waitForFunction(() => {
+  const element = document.querySelector("video");
+  return element && element.currentSrc.includes("/preview-next.webm") && !element.paused;
+});
+await page.evaluate(() => window.__obsoleteVideo.dispatchEvent(new Event("ended", { bubbles: true })));
 await page.getByText("Reproduciendo clip 2 de 2", { exact: false }).waitFor();
 await page.getByRole("button", { name: "Detener montaje" }).click();
 await page.getByRole("button", { name: "Reproducir montaje" }).waitFor();
+await page.waitForFunction(() => document.querySelector("video")?.paused === true);
 await page.screenshot({ path: path.join(outputDir, "02-editor-light.png"), fullPage: true });
 
 await page.getByRole("button", { name: "Activar modo oscuro" }).click();
