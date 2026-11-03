@@ -8,6 +8,7 @@ import { formatDuration, formatFileSize, importMedia, listProjectMedia, type Med
 import { MediaPlayer } from "./player";
 import { TimelinePanel } from "./timeline-panel";
 import { ExportPanel } from "./export-panel";
+import { TranscriptionPanel } from "./transcription-panel";
 
 type View = "projects" | "workspace";
 type Theme = "light" | "dark";
@@ -129,7 +130,7 @@ function App() {
           <button type="button" className="theme-button" onClick={() => setTheme((value) => value === "light" ? "dark" : "light")} aria-label={theme === "light" ? "Activar modo oscuro" : "Activar modo claro"}>
             <span aria-hidden="true">{theme === "light" ? "☾" : "☀"}</span> {theme === "light" ? "Modo oscuro" : "Modo claro"}
           </button>
-          <span className="version-label">CREATOR OS · v0.4</span>
+          <span className="version-label">CREATOR OS · v0.6</span>
         </div>
       </aside>
 
@@ -209,6 +210,7 @@ function App() {
             </div>
             <TimelinePanel projectId={activeProject.id} fps={activeProject.settings.fps} mediaAssets={mediaAssets} selectedAsset={selectedMedia} onError={(message) => setError({ code: "timeline_error", message })} />
             <ExportPanel projectId={activeProject.id} />
+            <TranscriptionPanel projectId={activeProject.id} selectedAsset={selectedMedia} />
             <div className="workspace-hint"><span aria-hidden="true">⌘</span> Selecciona un video y usa Espacio para reproducir; ← → para avanzar o retroceder 5 s.</div>
           </div>
         ) : null}

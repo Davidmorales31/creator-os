@@ -1,0 +1,13 @@
+[package]
+name = "creator-os-transcript-core"
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+description = "Versioned pure transcription contracts for Creator OS"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
+
+[dev-dependencies]
+serde_json = "1"

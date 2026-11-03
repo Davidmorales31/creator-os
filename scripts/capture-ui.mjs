@@ -38,13 +38,15 @@ await page.addInitScript(() => {
       height: 1080,
       fps: 24,
       videoCodec: "vp8",
-      audioCodec: null,
+      audioCodec: "aac",
       sampleRate: null,
       channels: null
     }
   ];
   let timeline = { schemaVersion: 1, revision: 0, tracks: [{ id: "video-1", name: "Video 1", kind: "video" }, { id: "audio-1", name: "Audio 1", kind: "audio" }], clips: [], undoStack: [], redoStack: [] };
   let exportJob = null;
+  const transcript = { id: "mock-transcript", createdAt: "2026-11-03T12:00:00.000Z", schemaVersion: 1, assetId: assets[0].id, model: "base", language: "es", segments: [{ startMs: 0, endMs: 1550, text: "En un futuro, la humanidad busca un nuevo hogar." }, { startMs: 2000, endMs: 3300, text: "La historia comienza con Cooper." }] };
+  let transcriptJob = null;
   window.__TAURI_INTERNALS__ = {
     invoke: async (command, args = {}) => {
       switch (command) {
@@ -56,6 +58,16 @@ await page.addInitScript(() => {
           return next;
         }
         case "list_project_media": return assets;
+        case "list_transcripts": return transcriptJob?.status === "completed" ? [transcript] : [];
+        case "start_transcription": {
+          transcriptJob = { id: "transcription-test", assetId: assets[0].id, status: "running", resultId: null, error: null, errorCode: null };
+          return transcriptJob;
+        }
+        case "get_transcription_status": {
+          transcriptJob = { ...transcriptJob, status: "completed", resultId: transcript.id };
+          return transcriptJob;
+        }
+        case "cancel_transcription": return { ...transcriptJob, status: "cancelled" };
         case "start_export": {
           exportJob = { id: "test-export", status: "running", progress: 0.25, outputPath: null, error: null };
           return exportJob;
@@ -102,6 +114,8 @@ await page.getByRole("button", { name: "+ Añadir clip" }).click();
 await page.locator(".timeline-clip").waitFor();
 await page.getByRole("button", { name: "Exportar MP4" }).click();
 await page.getByText("Exportación terminada").waitFor();
+await page.getByRole("button", { name: "Transcribir medio" }).click();
+await page.getByText("En un futuro, la humanidad busca un nuevo hogar.").waitFor();
 await page.screenshot({ path: path.join(outputDir, "02-editor-light.png"), fullPage: true });
 
 await page.getByRole("button", { name: "Activar modo oscuro" }).click();
