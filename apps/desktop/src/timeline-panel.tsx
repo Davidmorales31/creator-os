@@ -3,6 +3,8 @@ import { formatDuration, type MediaAsset } from "./media";
 import { normalizeCommandError } from "./projects";
 import { editTimeline, getTimeline, type Timeline, type TimelineClip, type TimelineEdit, type TrackKind } from "./timeline";
 import { previewAtFrame, previewClipAt, timelineFrameFromSource, type TimelinePreviewTarget } from "./timeline-preview";
+import { planMontage, montageFrameAtSource, type MontagePlan } from "./montage-plan";
+import type { MontageSession } from "./montage-session";
 
 type Props = {
   projectId: string;
@@ -13,6 +15,9 @@ type Props = {
   previewRequest: (TimelinePreviewTarget & { requestId: number }) | null;
   previewSourceTime: number | null;
   onPreviewRequest: (target: TimelinePreviewTarget) => void;
+  montageSession: MontageSession | null;
+  onMontageStart: (plan: MontagePlan) => void;
+  onMontageStop: () => void;
 };
 
 const PIXELS_PER_SECOND = 24;
@@ -24,7 +29,7 @@ function lastFrame(clips: TimelineClip[], trackId: string) {
   return clips.filter((c) => c.trackId === trackId).reduce((max, c) => Math.max(max, c.startFrame + c.durationFrames), 0);
 }
 
-export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onError, previewRequest, previewSourceTime, onPreviewRequest }: Props) {
+export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onError, previewRequest, previewSourceTime, onPreviewRequest, montageSession, onMontageStart, onMontageStop }: Props) {
   const [timeline, setTimeline] = useState<Timeline | null>(null);
   const [busy, setBusy] = useState(false);
   const [selectedClipId, setSelectedClipId] = useState<string | null>(null);
@@ -49,6 +54,20 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
 
   const selectedClip = timeline?.clips.find((c) => c.id === selectedClipId) ?? null;
   useEffect(() => {
+    if (!montageSession || previewSourceTime === null) return;
+    const segment = montageSession.plan.segments[montageSession.index];
+    const frame = montageFrameAtSource(segment, previewSourceTime, montageSession.plan.fps);
+    if (frame !== null) setCursorSeconds(frame / fps);
+  }, [montageSession, previewSourceTime, fps]);
+  function startMontage() {
+    if (!timeline || busy) return;
+    const result = planMontage(timeline, mediaAssets, fps);
+    if (!result.ok) { setPreviewNotice(result.reason); return; }
+    setPreviewNotice(null);
+    setCursorSeconds(0);
+    onMontageStart(result.plan);
+  }
+  useEffect(() => {
     if (!previewRequest || previewSourceTime === null || !timeline
       || !timeline.clips.some((clip) => clip.id === previewRequest.clipId
         && clip.assetId === previewRequest.assetId
@@ -61,6 +80,7 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
 
   function seekTimelineFrame(frame: number) {
     if (!timeline) return;
+    onMontageStop();
     setCursorSeconds(frame / fps);
     const target = previewAtFrame(timeline, frame, fps);
     if (!target) { setPreviewNotice("No hay clip de video en ese punto."); return; }
@@ -70,6 +90,7 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
   }
 
   function selectTimelineClip(clip: TimelineClip) {
+    onMontageStop();
     setSelectedClipId(clip.id);
     if (clip.kind !== "video") { setPreviewNotice("La previsualización de clips de audio llegará después."); return; }
     const target = previewClipAt(clip, clip.startFrame, fps);
@@ -86,6 +107,7 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
 
   async function dispatch(command: TimelineEdit, keepId?: string | null) {
     if (!timeline || busy) return;
+    onMontageStop();
     setBusy(true);
     try {
       const updated = await editTimeline(projectId, timeline.revision, command);
@@ -167,6 +189,11 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
       <div className="timeline-toolbar">
         <div><span className="eyebrow">EDICIÓN NO DESTRUCTIVA</span><h2>Timeline <span className="timeline-count">{timeline?.clips.length ?? 0} clips</span></h2></div>
         <div className="timeline-tools">
+          <button type="button" className="secondary-button"
+            onClick={montageSession ? onMontageStop : startMontage} disabled={!timeline || busy}
+            aria-label={montageSession ? "Detener montaje" : "Reproducir montaje"}>
+            {montageSession ? "■ Detener montaje" : "▶ Reproducir montaje"}
+          </button>
           <button type="button" className="secondary-button" onClick={() => addTrack("video")} disabled={!canEdit} title="Crear pista de video">+ Pista video</button>
           <button type="button" className="secondary-button" onClick={() => addTrack("audio")} disabled={!canEdit} title="Crear pista de audio">+ Pista audio</button>
           <button type="button" className="button button-primary" onClick={addAsset} disabled={!canEdit || !selectedAsset} title="Añadir el medio seleccionado a su pista">+ Añadir clip</button>
@@ -221,7 +248,9 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
         </div>
       </div>
       {previewNotice && <p role="status" className="timeline-preview-notice">{previewNotice}</p>}
-      <p className="timeline-preview-note">La previsualización muestra un clip individual, no la reproducción continua del montaje.</p>
+      <p className="timeline-preview-note">{montageSession
+        ? `Reproduciendo clip ${montageSession.index + 1} de ${montageSession.plan.segments.length} · una pista de video, sin mezcla de audio externa.`
+        : "Vista previa individual; «Reproducir montaje» encadena una sola pista continua de video."}</p>
       {!timeline ? <p className="timeline-help">Cargando timeline…</p> : timeline.clips.length === 0 ?
         <p className="timeline-help">Selecciona un video o audio de la biblioteca y pulsa “Añadir clip”. Los archivos originales no se modifican.</p> :
         <p className="timeline-help">Selecciona un clip para moverlo, dividirlo o recortarlo. Los cambios se guardan en el proyecto. Revisión {timeline.revision}.</p>}

@@ -130,6 +130,17 @@ await page.locator("video").evaluate((video) => { video.currentTime = 0.25; vide
 await page.locator(".caption-overlay").waitFor();
 await page.getByRole("button", { name: "Exportar .srt" }).click();
 await page.getByText(/Subtítulos guardados en/).waitFor();
+
+await page.getByRole("button", { name: "+ Añadir clip" }).click();
+await page.locator(".timeline-clip").nth(1).waitFor();
+await page.getByRole("button", { name: "Reproducir montaje" }).click();
+await page.getByText("Reproduciendo clip 1 de 2", { exact: false }).waitFor();
+await page.getByText("Preview · montaje secuencial").waitFor();
+// This is an actual HTMLMediaElement event on the real preview; native data is mocked.
+await page.locator("video").evaluate((video) => video.dispatchEvent(new Event("ended", { bubbles: true })));
+await page.getByText("Reproduciendo clip 2 de 2", { exact: false }).waitFor();
+await page.getByRole("button", { name: "Detener montaje" }).click();
+await page.getByRole("button", { name: "Reproducir montaje" }).waitFor();
 await page.screenshot({ path: path.join(outputDir, "02-editor-light.png"), fullPage: true });
 
 await page.getByRole("button", { name: "Activar modo oscuro" }).click();
