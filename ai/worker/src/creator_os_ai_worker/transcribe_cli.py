@@ -11,7 +11,7 @@ import argparse
 import json
 import os
 from pathlib import Path
-from typing import Sequence
+from collections.abc import Sequence
 
 from .provider import FasterWhisperProvider, TranscriptionError, TranscriptionOptions
 from .transcript import TranscriptValidationError
