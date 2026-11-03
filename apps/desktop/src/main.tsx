@@ -11,12 +11,22 @@ import {
   type Project,
   type ProjectSummary,
 } from "./projects";
+import {
+  formatBytes,
+  formatDuration,
+  importMedia,
+  listProjectMedia,
+  pickMediaFiles,
+  type MediaAsset,
+} from "./media";
 
 function App() {
   const [recentProjects, setRecentProjects] = useState<ProjectSummary[]>([]);
   const [activeProject, setActiveProject] = useState<Project | null>(null);
+  const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
   const [projectName, setProjectName] = useState("");
   const [busy, setBusy] = useState(false);
+  const [importing, setImporting] = useState(false);
   const [error, setError] = useState<CreatorCommandError | null>(null);
 
   async function refreshRecentProjects() {
@@ -28,9 +38,26 @@ function App() {
     }
   }
 
+  async function refreshMedia(projectId: string) {
+    try {
+      setError(null);
+      setMediaAssets(await listProjectMedia(projectId));
+    } catch (cause) {
+      setError(normalizeCommandError(cause));
+    }
+  }
+
   useEffect(() => {
     void refreshRecentProjects();
   }, []);
+
+  useEffect(() => {
+    if (activeProject) {
+      void refreshMedia(activeProject.id);
+    } else {
+      setMediaAssets([]);
+    }
+  }, [activeProject?.id]);
 
   async function handleCreateProject(event: FormEvent) {
     event.preventDefault();
@@ -66,11 +93,31 @@ function App() {
     }
   }
 
+  async function handleImportMedia() {
+    if (!activeProject) return;
+
+    try {
+      const paths = await pickMediaFiles();
+      if (paths.length === 0) return;
+
+      setImporting(true);
+      setError(null);
+      for (const sourcePath of paths) {
+        await importMedia(activeProject.id, sourcePath);
+      }
+      await refreshMedia(activeProject.id);
+    } catch (cause) {
+      setError(normalizeCommandError(cause));
+    } finally {
+      setImporting(false);
+    }
+  }
+
   return (
     <main className="app-shell">
       <header className="topbar">
         <div>
-          <span className="eyebrow">Creator OS v0.1</span>
+          <span className="eyebrow">Creator OS v0.2</span>
           <h1>Projects</h1>
         </div>
         <span className="local-badge">● Local-first</span>
@@ -155,6 +202,48 @@ function App() {
                 </span>
                 <span aria-hidden="true">→</span>
               </button>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="media-section" aria-labelledby="media-title">
+        <div className="section-heading">
+          <div>
+            <span className="eyebrow">Project library</span>
+            <h2 id="media-title">Media</h2>
+          </div>
+          <button
+            type="button"
+            onClick={() => void handleImportMedia()}
+            disabled={!activeProject || importing}
+          >
+            {importing ? "Importing…" : "Import media"}
+          </button>
+        </div>
+
+        {!activeProject ? (
+          <div className="panel empty-list">Open a project before importing media.</div>
+        ) : mediaAssets.length === 0 ? (
+          <div className="panel empty-list">
+            No media yet. Files stay in their original location; Creator OS stores references and metadata only.
+          </div>
+        ) : (
+          <div className="media-table panel">
+            <div className="media-row media-head" aria-hidden="true">
+              <span>File</span><span>Type</span><span>Duration</span><span>Details</span><span>Size</span>
+            </div>
+            {mediaAssets.map((asset) => (
+              <div className="media-row" key={asset.id}>
+                <div className="media-name">
+                  <span className={`media-kind media-kind-${asset.kind}`}>{asset.kind.slice(0, 1).toUpperCase()}</span>
+                  <span><strong>{asset.fileName}</strong><small title={asset.sourcePath}>{asset.sourcePath}</small></span>
+                </div>
+                <span className="kind-label">{asset.kind}</span>
+                <span>{formatDuration(asset.durationSeconds)}</span>
+                <span>{asset.width && asset.height ? `${asset.width}×${asset.height}` : asset.audioCodec ?? asset.videoCodec ?? "—"}{asset.fps ? ` · ${asset.fps.toFixed(2)} fps` : ""}</span>
+                <span>{formatBytes(asset.fileSizeBytes)}</span>
+              </div>
             ))}
           </div>
         )}
