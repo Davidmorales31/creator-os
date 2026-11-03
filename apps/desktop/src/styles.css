@@ -295,3 +295,14 @@ button.nav-item:hover:not(:disabled) { background: var(--creator-surface-raised)
 .transcription-export-actions{display:flex;align-items:center;flex-wrap:wrap;gap:var(--creator-space-1);padding:var(--creator-space-2);border-top:1px solid var(--creator-border);background:var(--creator-surface)}
 .transcription-export-result{margin:0;padding:var(--creator-space-1) var(--creator-space-2);border-top:1px solid var(--creator-border);color:var(--creator-text-secondary);background:var(--creator-accent-subtle);font-size:11px;overflow-wrap:anywhere}
 .transcription-export-result strong{color:var(--creator-accent);font-family:var(--creator-font-mono)}
+
+/* Issue #21: subtitle overlay rendered over the native video preview only. */
+.caption-overlay{position:absolute;z-index:3;inset:auto 0 var(--creator-space-3);display:flex;justify-content:center;padding:0 var(--creator-space-3);pointer-events:none;white-space:pre-line;text-align:center}
+.caption-text{display:inline-block;max-width:min(90%,68ch);padding:var(--creator-space-1) var(--creator-space-2);border-radius:var(--creator-radius-sm);background:var(--creator-overlay);color:var(--creator-stage-text);font-size:clamp(12px,1.6vw,22px);font-weight:650;line-height:1.5;overflow-wrap:anywhere;text-shadow:0 1px 2px var(--creator-stage)}
+.caption-controls{display:flex;align-items:center;gap:var(--creator-space-2);min-height:40px;margin-top:var(--creator-space-2);flex-wrap:wrap}
+.caption-toggle[aria-pressed="true"]{background:var(--creator-accent-subtle);border-color:var(--creator-accent);color:var(--creator-accent)}
+.caption-version{display:flex;align-items:center;gap:var(--creator-space-1);color:var(--creator-text-secondary);font-size:11px}
+.caption-version select{min-width:145px;max-width:230px;padding:7px;border:1px solid var(--creator-border);border-radius:var(--creator-radius-sm);background:var(--creator-surface);color:var(--creator-text);font-size:11px}
+.caption-status{color:var(--creator-text-tertiary);font-size:11px}
+.caption-error{color:var(--creator-danger);font-size:11px}
+@media(max-width:560px){.caption-overlay{bottom:var(--creator-space-1);padding:0 var(--creator-space-1)}.caption-text{font-size:12px}.caption-version select{max-width:175px}}

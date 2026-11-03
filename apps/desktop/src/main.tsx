@@ -25,6 +25,7 @@ function App() {
   const [error, setError] = useState<CreatorCommandError | null>(null);
   const [mediaAssets, setMediaAssets] = useState<MediaAsset[]>([]);
   const [selectedMedia, setSelectedMedia] = useState<MediaAsset | null>(null);
+  const [captionRevision, setCaptionRevision] = useState(0);
 
   useEffect(() => { document.documentElement.dataset.theme = theme; }, [theme]);
 
@@ -130,7 +131,7 @@ function App() {
           <button type="button" className="theme-button" onClick={() => setTheme((value) => value === "light" ? "dark" : "light")} aria-label={theme === "light" ? "Activar modo oscuro" : "Activar modo claro"}>
             <span aria-hidden="true">{theme === "light" ? "☾" : "☀"}</span> {theme === "light" ? "Modo oscuro" : "Modo claro"}
           </button>
-          <span className="version-label">CREATOR OS · v0.6</span>
+          <span className="version-label">CREATOR OS · v0.8</span>
         </div>
       </aside>
 
@@ -205,12 +206,12 @@ function App() {
                 )}
                 <div className="media-panel-footer">Los archivos permanecen en su ubicación original.</div>
               </section>
-              <MediaPlayer projectId={activeProject.id} asset={selectedMedia}/>
+              <MediaPlayer projectId={activeProject.id} asset={selectedMedia} captionRevision={captionRevision}/>
               <aside className="panel inspector-panel"><div className="section-heading"><div><span className="eyebrow">INSPECTOR</span><h2>Propiedades</h2></div></div>{selectedMedia ? <dl className="inspector-fields"><div><dt>Archivo</dt><dd title={selectedMedia.fileName}>{selectedMedia.fileName}</dd></div><div><dt>Tipo</dt><dd>{selectedMedia.kind}</dd></div><div><dt>Duración</dt><dd>{formatDuration(selectedMedia.durationSeconds)}</dd></div><div><dt>Resolución</dt><dd>{selectedMedia.width && selectedMedia.height ? `${selectedMedia.width} × ${selectedMedia.height}` : "—"}</dd></div><div><dt>FPS</dt><dd>{selectedMedia.fps?.toFixed(2) ?? "—"}</dd></div></dl> : <p>Selecciona un archivo para ver sus propiedades.</p>}</aside>
             </div>
             <TimelinePanel projectId={activeProject.id} fps={activeProject.settings.fps} mediaAssets={mediaAssets} selectedAsset={selectedMedia} onError={(message) => setError({ code: "timeline_error", message })} />
             <ExportPanel projectId={activeProject.id} />
-            <TranscriptionPanel projectId={activeProject.id} selectedAsset={selectedMedia} />
+            <TranscriptionPanel projectId={activeProject.id} selectedAsset={selectedMedia} onTranscriptsReady={() => setCaptionRevision((current) => current + 1)} />
             <div className="workspace-hint"><span aria-hidden="true">⌘</span> Selecciona un video y usa Espacio para reproducir; ← → para avanzar o retroceder 5 s.</div>
           </div>
         ) : null}

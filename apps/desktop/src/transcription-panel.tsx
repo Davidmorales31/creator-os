@@ -8,9 +8,9 @@ import {
   type TranscriptionModel, type TranscriptionLanguage,
 } from "./transcription";
 
-type Props = { projectId: string; selectedAsset: MediaAsset | null };
+type Props = { projectId: string; selectedAsset: MediaAsset | null; onTranscriptsReady?: () => void };
 
-export function TranscriptionPanel({ projectId, selectedAsset }: Props) {
+export function TranscriptionPanel({ projectId, selectedAsset, onTranscriptsReady }: Props) {
   const [model, setModel] = useState<TranscriptionModel>("base");
   const [language, setLanguage] = useState<TranscriptionLanguage>("es");
   const [allowDownload, setAllowDownload] = useState(false);
@@ -58,7 +58,7 @@ export function TranscriptionPanel({ projectId, selectedAsset }: Props) {
         if (current.status !== "queued" && current.status !== "running") activeJobId.current = null;
         if (current.status === "completed" && mediaId) {
           const transcripts = await listTranscripts(projectId, mediaId);
-          if (active) setRecords(transcripts);
+          if (active) { setRecords(transcripts); onTranscriptsReady?.(); }
         }
       }).catch((cause: unknown) => {
         if (active) setError(normalizeCommandError(cause).message);
