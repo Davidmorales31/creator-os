@@ -1,0 +1,10 @@
+[package]
+name = "creator-os-project-core"
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+description = "Creator OS project domain model"
+
+[dependencies]
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"
