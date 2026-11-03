@@ -31,7 +31,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          cache: pnpm
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -55,7 +54,7 @@ jobs:
       - name: Verify native icons and Tauri metadata
         run: python3 scripts/check-native-assets.py
       - name: Install frontend dependencies
-        run: pnpm install --frozen-lockfile
+        run: pnpm install
       - name: Verify offline local media tools are available
         run: |
           ffmpeg -hide_banner -version | head -n 1
