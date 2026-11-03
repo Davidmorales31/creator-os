@@ -8,7 +8,14 @@ use uuid::Uuid;
 
 const PROJECTS_DIR: &str = "projects";
 const PROJECT_FILE: &str = "project.json";
-const PROJECT_SUBDIRS: &[&str] = &["media", "proxies", "cache", "audio", "exports", "thumbnails"];
+const PROJECT_SUBDIRS: &[&str] = &[
+    "media",
+    "proxies",
+    "cache",
+    "audio",
+    "exports",
+    "thumbnails",
+];
 
 #[derive(Debug, Serialize)]
 #[serde(rename_all = "camelCase")]
