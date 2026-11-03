@@ -43,6 +43,7 @@ await page.addInitScript(() => {
       channels: null
     }
   ];
+  let timeline = { schemaVersion: 1, revision: 0, tracks: [{ id: "video-1", name: "Video 1", kind: "video" }, { id: "audio-1", name: "Audio 1", kind: "audio" }], clips: [], undoStack: [], redoStack: [] };
   window.__TAURI_INTERNALS__ = {
     invoke: async (command, args = {}) => {
       switch (command) {
@@ -54,6 +55,15 @@ await page.addInitScript(() => {
           return next;
         }
         case "list_project_media": return assets;
+        case "get_timeline": return timeline;
+        case "edit_timeline": {
+          const { command: action, expectedRevision } = args;
+          if (expectedRevision !== timeline.revision) throw { code: "stale_timeline_revision", message: "Stale timeline" };
+          if (action.action === "apply" && action.operation.type === "addClip") {
+            timeline = { ...timeline, revision: timeline.revision + 1, clips: [...timeline.clips, action.operation.clip], undoStack: [ ...timeline.undoStack, { tracks: timeline.tracks, clips: timeline.clips } ] };
+          }
+          return timeline;
+        }
         case "get_media_preview_url": return "/preview.webm";
         default: throw new Error("Unknown mock command: " + command);
       }
@@ -78,6 +88,8 @@ await page.locator("video").evaluate((video) => new Promise((resolve, reject) =>
   video.addEventListener("loadedmetadata", resolve, { once: true });
   video.addEventListener("error", () => reject(new Error("Fixture video could not be decoded")), { once: true });
 }));
+await page.getByRole("button", { name: "+ Añadir clip" }).click();
+await page.locator(".timeline-clip").waitFor();
 await page.screenshot({ path: path.join(outputDir, "02-editor-light.png"), fullPage: true });
 
 await page.getByRole("button", { name: "Activar modo oscuro" }).click();

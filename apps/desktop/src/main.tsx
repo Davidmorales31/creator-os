@@ -6,6 +6,7 @@ import "./styles.css";
 import { createProject, listRecentProjects, normalizeCommandError, openProject, type CreatorCommandError, type Project, type ProjectSummary } from "./projects";
 import { formatDuration, formatFileSize, importMedia, listProjectMedia, type MediaAsset } from "./media";
 import { MediaPlayer } from "./player";
+import { TimelinePanel } from "./timeline-panel";
 
 type View = "projects" | "workspace";
 type Theme = "light" | "dark";
@@ -127,7 +128,7 @@ function App() {
           <button type="button" className="theme-button" onClick={() => setTheme((value) => value === "light" ? "dark" : "light")} aria-label={theme === "light" ? "Activar modo oscuro" : "Activar modo claro"}>
             <span aria-hidden="true">{theme === "light" ? "☾" : "☀"}</span> {theme === "light" ? "Modo oscuro" : "Modo claro"}
           </button>
-          <span className="version-label">CREATOR OS · v0.3</span>
+          <span className="version-label">CREATOR OS · v0.4</span>
         </div>
       </aside>
 
@@ -205,7 +206,7 @@ function App() {
               <MediaPlayer projectId={activeProject.id} asset={selectedMedia}/>
               <aside className="panel inspector-panel"><div className="section-heading"><div><span className="eyebrow">INSPECTOR</span><h2>Propiedades</h2></div></div>{selectedMedia ? <dl className="inspector-fields"><div><dt>Archivo</dt><dd title={selectedMedia.fileName}>{selectedMedia.fileName}</dd></div><div><dt>Tipo</dt><dd>{selectedMedia.kind}</dd></div><div><dt>Duración</dt><dd>{formatDuration(selectedMedia.durationSeconds)}</dd></div><div><dt>Resolución</dt><dd>{selectedMedia.width && selectedMedia.height ? `${selectedMedia.width} × ${selectedMedia.height}` : "—"}</dd></div><div><dt>FPS</dt><dd>{selectedMedia.fps?.toFixed(2) ?? "—"}</dd></div></dl> : <p>Selecciona un archivo para ver sus propiedades.</p>}</aside>
             </div>
-            <section className="panel timeline-preview" aria-label="Línea de tiempo futura"><div className="section-heading"><div><span className="eyebrow">EDICIÓN</span><h2>Timeline</h2></div><span className="timeline-soon">Disponible en Issue #4</span></div><div className="timeline-placeholder"><div className="timeline-ruler">00:00 <span>02:00</span><span>04:00</span><span>06:00</span><span>08:00</span></div><div className="timeline-track"><span>Subtítulos</span><i/></div><div className="timeline-track"><span>Video</span><i/></div><div className="timeline-track"><span>Audio</span><i/></div></div></section>
+            <TimelinePanel projectId={activeProject.id} fps={activeProject.settings.fps} mediaAssets={mediaAssets} selectedAsset={selectedMedia} onError={(message) => setError({ code: "timeline_error", message })} />
             <div className="workspace-hint"><span aria-hidden="true">⌘</span> Selecciona un video y usa Espacio para reproducir; ← → para avanzar o retroceder 5 s.</div>
           </div>
         ) : null}

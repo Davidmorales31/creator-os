@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
+use creator_os_timeline_core::Timeline;
 
-pub const PROJECT_SCHEMA_VERSION: u32 = 1;
+pub const PROJECT_SCHEMA_VERSION: u32 = 2;
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -30,6 +31,8 @@ pub struct Project {
     pub created_at: String,
     pub updated_at: String,
     pub settings: ProjectSettings,
+    #[serde(default)]
+    pub timeline: Timeline,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -72,6 +75,7 @@ impl Project {
             created_at: now.clone(),
             updated_at: now,
             settings: ProjectSettings::default(),
+            timeline: Timeline::default(),
         })
     }
 
@@ -106,5 +110,20 @@ mod tests {
             .expect_err("blank names must fail");
 
         assert_eq!(error, ProjectValidationError::EmptyName);
+    }
+}
+
+#[cfg(test)]
+mod migration_tests {
+    use super::*;
+    #[test]
+    fn legacy_project_without_timeline_loads_default_tracks() {
+        let mut json = serde_json::to_value(Project::create("id", "Old", "now").unwrap()).unwrap();
+        json.as_object_mut().unwrap().remove("timeline");
+        json["schemaVersion"] = serde_json::json!(1);
+        let project: Project = serde_json::from_value(json).unwrap();
+        assert_eq!(project.schema_version, 1);
+        assert_eq!(project.timeline.tracks.len(), 2);
+        assert!(project.timeline.clips.is_empty());
     }
 }

@@ -1,7 +1,7 @@
 use std::{fs, path::PathBuf};
 
 use chrono::Utc;
-use creator_os_project_core::{Project, ProjectSummary, ProjectValidationError};
+use creator_os_project_core::{Project, ProjectSummary, ProjectValidationError, PROJECT_SCHEMA_VERSION};
 use serde::Serialize;
 use tauri::{AppHandle, Manager};
 use uuid::Uuid;
@@ -86,7 +86,15 @@ impl FsProjectRepository {
         }
 
         let raw = fs::read_to_string(path)?;
-        let project: Project = serde_json::from_str(&raw)?;
+        let mut project: Project = serde_json::from_str(&raw)?;
+        if project.id != project_id || project.schema_version > PROJECT_SCHEMA_VERSION {
+            return Err(CommandError::new("invalid_project_version", "Project id or schema version is incompatible"));
+        }
+        if project.schema_version < PROJECT_SCHEMA_VERSION {
+            project.schema_version = PROJECT_SCHEMA_VERSION;
+            self.save(&project)?;
+        }
+        project.timeline.validate().map_err(|error| CommandError::new("invalid_timeline", error.to_string()))?;
         Ok(project)
     }
 
@@ -121,7 +129,7 @@ impl FsProjectRepository {
         Ok(projects)
     }
 
-    fn save(&self, project: &Project) -> Result<(), CommandError> {
+    pub fn save(&self, project: &Project) -> Result<(), CommandError> {
         let project_dir = self.project_dir(&project.id);
         fs::create_dir_all(&project_dir)?;
         for subdir in PROJECT_SUBDIRS {
@@ -132,6 +140,8 @@ impl FsProjectRepository {
         let target = project_dir.join(PROJECT_FILE);
         let temporary = project_dir.join("project.json.tmp");
         fs::write(&temporary, serialized)?;
+        #[cfg(windows)]
+        if target.exists() { fs::remove_file(&target)?; }
         fs::rename(temporary, target)?;
         Ok(())
     }

@@ -6,6 +6,8 @@ export type ProjectSettings = {
   fps: number;
 };
 
+import type { Timeline } from "./timeline";
+
 export type Project = {
   schemaVersion: number;
   id: string;
@@ -13,6 +15,7 @@ export type Project = {
   createdAt: string;
   updatedAt: string;
   settings: ProjectSettings;
+  timeline?: Timeline;
 };
 
 export type ProjectSummary = Pick<Project, "id" | "name" | "updatedAt">;
