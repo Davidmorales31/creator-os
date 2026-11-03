@@ -168,32 +168,28 @@ mod tests {
         std::fs::create_dir_all(&dir).unwrap();
         let first = dir.join("video a.mp4");
         let second = dir.join("video-b.mp4");
-        for (file, color) in [(&first, "red"), (&second, "blue")] {
-            let status = std::process::Command::new(&ffmpeg)
-                .args([
-                    "-hide_banner",
-                    "-loglevel",
-                    "error",
-                    "-y",
-                    "-f",
-                    "lavfi",
-                    "-i",
-                    &format!("color=c={color}:s=320x180:r=30"),
-                    "-f",
-                    "lavfi",
-                    "-i",
-                    "anullsrc=r=48000:cl=stereo",
-                    "-t",
-                    "1.5",
-                    "-c:v",
-                    "mpeg4",
-                    "-c:a",
-                    "aac",
-                    "-shortest",
-                ])
-                .arg(file)
-                .status()
-                .unwrap();
+        for (file, color, audio) in [(&first, "red", true), (&second, "blue", false)] {
+            let mut command = std::process::Command::new(&ffmpeg);
+            command.args([
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-y",
+                "-f",
+                "lavfi",
+                "-i",
+                &format!("color=c={color}:s=320x180:r=30"),
+            ]);
+            if audio {
+                command.args(["-f", "lavfi", "-i", "anullsrc=r=48000:cl=stereo"]);
+            }
+            command.args(["-t", "1.5", "-c:v", "mpeg4"]);
+            if audio {
+                command.args(["-c:a", "aac", "-shortest"]);
+            } else {
+                command.arg("-an");
+            }
+            let status = command.arg(file).status().unwrap();
             assert!(status.success(), "fixture failed");
         }
         let plan = RenderPlan {
@@ -204,7 +200,7 @@ mod tests {
                 height: 180,
                 fps: 30,
             },
-            segments: [(&first, 0, 30, true), (&second, 0, 30, true)]
+            segments: [(&first, 0, 30, true), (&second, 0, 30, false)]
                 .into_iter()
                 .enumerate()
                 .map(|(i, (p, offset, duration, audio))| RenderSegment {
