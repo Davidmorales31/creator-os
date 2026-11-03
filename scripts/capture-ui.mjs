@@ -113,6 +113,11 @@ await page.locator("video").evaluate((video) => new Promise((resolve, reject) =>
 }));
 await page.getByRole("button", { name: "+ Añadir clip" }).click();
 await page.locator(".timeline-clip").waitFor();
+await page.locator(".timeline-clip").first().click();
+await page.getByText("Preview · clip del timeline").waitFor();
+const sourceTime = await page.locator("video").evaluate((video) => video.currentTime);
+assert.ok(sourceTime >= 0 && Number.isFinite(sourceTime), "Timeline clip should seek source preview");
+
 await page.getByRole("button", { name: "Exportar MP4" }).click();
 await page.getByText("Exportación terminada").waitFor();
 await page.getByRole("button", { name: "Transcribir medio" }).click();
