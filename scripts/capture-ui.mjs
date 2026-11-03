@@ -8,7 +8,7 @@ const { chromium } = require("playwright");
 const outputDir = path.resolve("visual-review");
 fs.mkdirSync(outputDir, { recursive: true });
 
-const browser = await chromium.launch({ headless: true });
+const browser = await chromium.launch({ headless: true, ...(process.env.CHROME_PATH ? { executablePath: process.env.CHROME_PATH } : {}) });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 }, deviceScaleFactor: 1, reducedMotion: "reduce" });
 
 await page.addInitScript(() => {
