@@ -425,7 +425,9 @@ mod tests {
         assert_eq!(t.clips[1].duration_frames, 40);
         t.redo(7).unwrap();
         assert_eq!(t.clips[1].duration_frames, 30);
-        assert!(matches!(t.redo(8), Err(TimelineError::EmptyHistory)));
+        t.redo(8).unwrap();
+        assert_eq!(t.clips.len(), 1);
+        assert_eq!(t.redo(9), Err(TimelineError::EmptyHistory));
     }
 
     #[test]
