@@ -28,7 +28,13 @@ jobs:
         run: |
           mkdir -p /tmp/creator-os-visual
           npm install --no-package-lock --prefix /tmp/creator-os-visual playwright@1.56.1
-          /tmp/creator-os-visual/node_modules/.bin/playwright install chromium --with-deps
+          if command -v google-chrome >/dev/null; then
+            echo "CHROME_PATH=$(command -v google-chrome)" >> "$GITHUB_ENV"
+          elif command -v chromium >/dev/null; then
+            echo "CHROME_PATH=$(command -v chromium)" >> "$GITHUB_ENV"
+          else
+            /tmp/creator-os-visual/node_modules/.bin/playwright install chromium
+          fi
       - name: Generate browser media fixture
         run: |
           sudo apt-get update
