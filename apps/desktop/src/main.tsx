@@ -106,15 +106,15 @@ function App() {
         </div>
         <div className="nav-group">
           <span className="nav-caption">NAVEGACIÓN</span>
-          <button type="button" className={`nav-item ${view === "projects" ? "nav-item-active" : ""}`} onClick={() => setView("projects")}><span className="nav-symbol" aria-hidden="true">⌂</span> Inicio</button>
-          <button type="button" className={`nav-item ${view === "projects" ? "nav-item-active" : ""}`} aria-current={view === "projects" ? "page" : undefined} onClick={() => setView("projects")}>
+          <button type="button" className={`nav-item ${view === "projects" ? "nav-item-active" : ""}`} aria-current={view === "projects" ? "page" : undefined} onClick={() => setView("projects")}><span className="nav-symbol" aria-hidden="true">⌂</span> Inicio</button>
+          <button type="button" className="nav-item" onClick={() => setView("projects")}>
             <span className="nav-symbol" aria-hidden="true">▦</span> Proyectos
           </button>
           <button type="button" className={`nav-item ${view === "workspace" ? "nav-item-active" : ""}`} aria-current={view === "workspace" ? "page" : undefined} onClick={() => setView("workspace")} disabled={!activeProject}>
-            <span className="nav-symbol" aria-hidden="true">▤</span> Estudio
+            <span className="nav-symbol" aria-hidden="true">▤</span> Editor
           </button>
           <span className="nav-caption nav-caption-secondary">HERRAMIENTAS</span>
-          <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">◈</span> Guiones IA <span className="nav-soon">Pronto</span></span>
+          <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">◈</span> Script Studio <span className="nav-soon">Pronto</span></span>
           <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">♫</span> Voice Studio <span className="nav-soon">Pronto</span></span>
           <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">▣</span> Biblioteca <span className="nav-soon">Pronto</span></span>
           <span className="nav-item nav-item-soon"><span className="nav-symbol" aria-hidden="true">◧</span> Shorts <span className="nav-soon">Pronto</span></span>
@@ -151,7 +151,7 @@ function App() {
               <p>Tu estudio completo para crear, editar y publicar contenido.</p>
             </div>
             <div className="quick-actions" aria-label="Accesos rápidos">
-              <div className="quick-action-card quick-action-primary"><span className="quick-icon" aria-hidden="true">＋</span><strong>Nuevo proyecto</strong><small>Video, Short o Serie</small></div>
+              <button type="button" className="quick-action-card quick-action-primary" onClick={() => document.getElementById("project-name")?.focus()}><span className="quick-icon" aria-hidden="true">＋</span><strong>Nuevo proyecto</strong><small>Video, Short o Serie</small></button>
               <div className="quick-action-card quick-action-future"><span className="quick-icon" aria-hidden="true">✎</span><strong>Generar Guion</strong><small>Próximamente</small></div>
               <div className="quick-action-card quick-action-future"><span className="quick-icon" aria-hidden="true">◉</span><strong>Clonar mi voz</strong><small>Próximamente</small></div>
               <div className="quick-action-card quick-action-future"><span className="quick-icon" aria-hidden="true">▯</span><strong>Crear Short</strong><small>Próximamente</small></div>
