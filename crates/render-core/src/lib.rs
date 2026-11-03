@@ -40,7 +40,9 @@ pub enum RenderError {
     EmptyTimeline,
     #[error("first export supports exactly one populated video track and no separate audio clips")]
     UnsupportedTracks,
-    #[error("first export supports only imported video assets (no still images or audio-only media)")]
+    #[error(
+        "first export supports only imported video assets (no still images or audio-only media)"
+    )]
     UnsupportedMedia,
     #[error("video clips must be continuous starting at frame zero")]
     GappedTimeline,
@@ -61,22 +63,36 @@ impl RenderPlan {
         settings: RenderSettings,
     ) -> Result<Self, RenderError> {
         timeline.validate()?;
-        if settings.width == 0 || settings.height == 0
-            || settings.width > 4096 || settings.height > 4096
-            || !settings.width.is_multiple_of(2) || !settings.height.is_multiple_of(2)
+        if settings.width == 0
+            || settings.height == 0
+            || settings.width > 4096
+            || settings.height > 4096
+            || !settings.width.is_multiple_of(2)
+            || !settings.height.is_multiple_of(2)
             || !(1..=120).contains(&settings.fps)
         {
             return Err(RenderError::InvalidSettings);
         }
 
-        if timeline.clips.is_empty() { return Err(RenderError::EmptyTimeline); }
-        let mut populated_tracks = timeline.clips.iter().map(|clip| clip.track_id.as_str())
+        if timeline.clips.is_empty() {
+            return Err(RenderError::EmptyTimeline);
+        }
+        let mut populated_tracks = timeline
+            .clips
+            .iter()
+            .map(|clip| clip.track_id.as_str())
             .collect::<std::collections::HashSet<_>>();
         if populated_tracks.len() != 1 {
             return Err(RenderError::UnsupportedTracks);
         }
-        let track_id = populated_tracks.drain().next().ok_or(RenderError::EmptyTimeline)?;
-        let track = timeline.tracks.iter().find(|track| track.id == track_id)
+        let track_id = populated_tracks
+            .drain()
+            .next()
+            .ok_or(RenderError::EmptyTimeline)?;
+        let track = timeline
+            .tracks
+            .iter()
+            .find(|track| track.id == track_id)
             .ok_or(RenderError::UnsupportedTracks)?;
         if track.kind != TrackKind::Video {
             return Err(RenderError::UnsupportedTracks);
@@ -90,25 +106,36 @@ impl RenderPlan {
             if clip.start_frame != cursor {
                 return Err(RenderError::GappedTimeline);
             }
-            let asset = assets.iter().find(|asset| asset.id == clip.asset_id)
+            let asset = assets
+                .iter()
+                .find(|asset| asset.id == clip.asset_id)
                 .ok_or(RenderError::MissingAsset)?;
             if asset.kind != MediaKind::Video {
                 return Err(RenderError::UnsupportedMedia);
             }
-            if asset.source_path.trim().is_empty() { return Err(RenderError::MissingAsset); }
-            let duration = asset.duration_seconds.ok_or(RenderError::InvalidSourceDuration)?;
-            if !duration.is_finite() || duration <= 0.0
+            if asset.source_path.trim().is_empty() {
+                return Err(RenderError::MissingAsset);
+            }
+            let duration = asset
+                .duration_seconds
+                .ok_or(RenderError::InvalidSourceDuration)?;
+            if !duration.is_finite()
+                || duration <= 0.0
                 || duration * f64::from(settings.fps) > u64::MAX as f64
             {
                 return Err(RenderError::InvalidSourceDuration);
             }
             let measured_frames = (duration * f64::from(settings.fps)).floor() as u64;
-            let end = clip.source_in_frame.checked_add(clip.duration_frames)
+            let end = clip
+                .source_in_frame
+                .checked_add(clip.duration_frames)
                 .ok_or(RenderError::InvalidLength)?;
             if end > measured_frames || clip.source_length_frames != Some(measured_frames) {
                 return Err(RenderError::InvalidSourceBounds);
             }
-            cursor = cursor.checked_add(clip.duration_frames).ok_or(RenderError::InvalidLength)?;
+            cursor = cursor
+                .checked_add(clip.duration_frames)
+                .ok_or(RenderError::InvalidLength)?;
             segments.push(RenderSegment {
                 asset_id: asset.id.clone(),
                 source_path: asset.source_path.clone(),
@@ -121,7 +148,12 @@ impl RenderPlan {
         if cursor > u64::from(settings.fps) * 60 * 60 * 24 {
             return Err(RenderError::InvalidLength);
         }
-        Ok(Self { timeline_revision: timeline.revision, settings, segments, total_frames: cursor })
+        Ok(Self {
+            timeline_revision: timeline.revision,
+            settings,
+            segments,
+            total_frames: cursor,
+        })
     }
 
     pub fn duration_seconds(&self) -> f64 {
@@ -136,25 +168,64 @@ mod tests {
 
     fn asset(id: &str, audio: bool) -> MediaAsset {
         MediaAsset {
-            id: id.into(), file_name: format!("{id}.mp4"), source_path: format!("/tmp/{id}.mp4"),
-            kind: MediaKind::Video, file_size_bytes: 800,
-            duration_seconds: Some(10.0), width: Some(1280), height: Some(720), fps: Some(30.0),
-            video_codec: Some("h264".into()), audio_codec: audio.then_some("aac".into()),
-            sample_rate: None, channels: None, imported_at: "now".into(),
+            id: id.into(),
+            file_name: format!("{id}.mp4"),
+            source_path: format!("/tmp/{id}.mp4"),
+            kind: MediaKind::Video,
+            file_size_bytes: 800,
+            duration_seconds: Some(10.0),
+            width: Some(1280),
+            height: Some(720),
+            fps: Some(30.0),
+            video_codec: Some("h264".into()),
+            audio_codec: audio.then_some("aac".into()),
+            sample_rate: None,
+            channels: None,
+            imported_at: "now".into(),
         }
     }
     fn clip(id: &str, asset_id: &str, start_frame: u64, duration_frames: u64) -> Clip {
-        Clip { id: id.into(), asset_id: asset_id.into(), track_id: "video-1".into(),
-            kind: TrackKind::Video, start_frame, source_in_frame: 10,
-            duration_frames, source_length_frames: Some(300) }
+        Clip {
+            id: id.into(),
+            asset_id: asset_id.into(),
+            track_id: "video-1".into(),
+            kind: TrackKind::Video,
+            start_frame,
+            source_in_frame: 10,
+            duration_frames,
+            source_length_frames: Some(300),
+        }
     }
-    fn settings() -> RenderSettings { RenderSettings { width: 1920, height: 1080, fps: 30 } }
+    fn settings() -> RenderSettings {
+        RenderSettings {
+            width: 1920,
+            height: 1080,
+            fps: 30,
+        }
+    }
     #[test]
     fn deterministic_plan_preserves_source_offsets_order_and_audio() {
         let mut t = Timeline::default();
-        t.apply(0, TimelineOperation::AddClip { clip: clip("a", "first", 0, 30) }).unwrap();
-        t.apply(1, TimelineOperation::AddClip { clip: clip("b", "second", 30, 45) }).unwrap();
-        let p = RenderPlan::build(&t, &[asset("second", false), asset("first", true)], settings()).unwrap();
+        t.apply(
+            0,
+            TimelineOperation::AddClip {
+                clip: clip("a", "first", 0, 30),
+            },
+        )
+        .unwrap();
+        t.apply(
+            1,
+            TimelineOperation::AddClip {
+                clip: clip("b", "second", 30, 45),
+            },
+        )
+        .unwrap();
+        let p = RenderPlan::build(
+            &t,
+            &[asset("second", false), asset("first", true)],
+            settings(),
+        )
+        .unwrap();
         assert_eq!(p.segments.len(), 2);
         assert_eq!(p.segments[0].asset_id, "first");
         assert_eq!(p.segments[0].source_in_frame, 10);
@@ -166,35 +237,79 @@ mod tests {
     #[test]
     fn gapped_timeline_does_not_silently_collapse_or_render_black() {
         let mut t = Timeline::default();
-        t.apply(0, TimelineOperation::AddClip { clip: clip("a", "a", 1, 30) }).unwrap();
-        assert_eq!(RenderPlan::build(&t, &[asset("a", true)], settings()), Err(RenderError::GappedTimeline));
+        t.apply(
+            0,
+            TimelineOperation::AddClip {
+                clip: clip("a", "a", 1, 30),
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            RenderPlan::build(&t, &[asset("a", true)], settings()),
+            Err(RenderError::GappedTimeline)
+        );
     }
     #[test]
     fn rejects_audio_tracks_and_missing_assets() {
         let mut t = Timeline::default();
-        t.apply(0, TimelineOperation::AddClip { clip: clip("a", "a", 0, 30) }).unwrap();
-        assert_eq!(RenderPlan::build(&t, &[], settings()), Err(RenderError::MissingAsset));
+        t.apply(
+            0,
+            TimelineOperation::AddClip {
+                clip: clip("a", "a", 0, 30),
+            },
+        )
+        .unwrap();
+        assert_eq!(
+            RenderPlan::build(&t, &[], settings()),
+            Err(RenderError::MissingAsset)
+        );
         let mut audio = clip("b", "a", 0, 30);
         audio.kind = TrackKind::Audio;
         audio.track_id = "audio-1".into();
-        t.apply(1, TimelineOperation::AddClip { clip: audio }).unwrap();
-        assert_eq!(RenderPlan::build(&t, &[asset("a", true)], settings()), Err(RenderError::UnsupportedTracks));
+        t.apply(1, TimelineOperation::AddClip { clip: audio })
+            .unwrap();
+        assert_eq!(
+            RenderPlan::build(&t, &[asset("a", true)], settings()),
+            Err(RenderError::UnsupportedTracks)
+        );
     }
     #[test]
     fn rejects_mismatched_source_and_image() {
         let mut t = Timeline::default();
-        t.apply(0, TimelineOperation::AddClip { clip: clip("a", "a", 0, 30) }).unwrap();
+        t.apply(
+            0,
+            TimelineOperation::AddClip {
+                clip: clip("a", "a", 0, 30),
+            },
+        )
+        .unwrap();
         let mut a = asset("a", true);
         a.duration_seconds = Some(0.1);
-        assert_eq!(RenderPlan::build(&t, &[a.clone()], settings()), Err(RenderError::InvalidSourceBounds));
+        assert_eq!(
+            RenderPlan::build(&t, &[a.clone()], settings()),
+            Err(RenderError::InvalidSourceBounds)
+        );
         a.kind = MediaKind::Image;
-        assert_eq!(RenderPlan::build(&t, &[a], settings()), Err(RenderError::UnsupportedMedia));
+        assert_eq!(
+            RenderPlan::build(&t, &[a], settings()),
+            Err(RenderError::UnsupportedMedia)
+        );
     }
     #[test]
     fn rejects_invalid_output_settings_and_empty_timeline() {
         let t = Timeline::default();
-        assert_eq!(RenderPlan::build(&t, &[], settings()), Err(RenderError::EmptyTimeline));
-        let bad = RenderSettings { width: 1921, height: 1080, fps: 30 };
-        assert_eq!(RenderPlan::build(&t, &[], bad), Err(RenderError::InvalidSettings));
+        assert_eq!(
+            RenderPlan::build(&t, &[], settings()),
+            Err(RenderError::EmptyTimeline)
+        );
+        let bad = RenderSettings {
+            width: 1921,
+            height: 1080,
+            fps: 30,
+        };
+        assert_eq!(
+            RenderPlan::build(&t, &[], bad),
+            Err(RenderError::InvalidSettings)
+        );
     }
 }
