@@ -44,6 +44,7 @@ await page.addInitScript(() => {
     }
   ];
   let timeline = { schemaVersion: 1, revision: 0, tracks: [{ id: "video-1", name: "Video 1", kind: "video" }, { id: "audio-1", name: "Audio 1", kind: "audio" }], clips: [], undoStack: [], redoStack: [] };
+  let exportJob = null;
   window.__TAURI_INTERNALS__ = {
     invoke: async (command, args = {}) => {
       switch (command) {
@@ -55,6 +56,15 @@ await page.addInitScript(() => {
           return next;
         }
         case "list_project_media": return assets;
+        case "start_export": {
+          exportJob = { id: "test-export", status: "running", progress: 0.25, outputPath: null, error: null };
+          return exportJob;
+        }
+        case "get_export_status": {
+          exportJob = { ...exportJob, status: "completed", progress: 1, outputPath: "/fixtures/exports/test-export.mp4" };
+          return exportJob;
+        }
+        case "cancel_export": return { ...exportJob, status: "cancelled" };
         case "get_timeline": return timeline;
         case "edit_timeline": {
           const { command: action, expectedRevision } = args;
@@ -90,6 +100,8 @@ await page.locator("video").evaluate((video) => new Promise((resolve, reject) =>
 }));
 await page.getByRole("button", { name: "+ Añadir clip" }).click();
 await page.locator(".timeline-clip").waitFor();
+await page.getByRole("button", { name: "Exportar MP4" }).click();
+await page.getByText("Exportación terminada").waitFor();
 await page.screenshot({ path: path.join(outputDir, "02-editor-light.png"), fullPage: true });
 
 await page.getByRole("button", { name: "Activar modo oscuro" }).click();

@@ -27,3 +27,5 @@ tower = { version = "0.5", features = ["util"] }
 tower-http = { version = "0.6", features = ["fs"] }
 
 creator-os-timeline-core = { path = "../../../crates/timeline-core" }
+
+creator-os-render-core = { path = "../../../crates/render-core" }

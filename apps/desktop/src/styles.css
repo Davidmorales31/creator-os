@@ -249,3 +249,23 @@ button.nav-item:hover:not(:disabled) { background: var(--creator-surface-raised)
 .timeline-playhead { position:absolute; top:0; bottom:0; width:2px; pointer-events:none; background:var(--creator-danger); opacity:.7; }
 .timeline-help { margin:var(--creator-space-2) 0 0; font-size:11px; color:var(--creator-text-tertiary); }
 @media(max-width:800px){ .timeline-toolbar { align-items:flex-start; } .timeline-operations { overflow:auto; flex-wrap:nowrap; padding-bottom:var(--creator-space-2); } .timeline-operations button { flex-shrink:0; } }
+
+/* Local render operations — visually aligned with macOS-inspired Creator OS tokens. */
+.export-panel { display:grid; gap:var(--creator-space-2); margin-top:var(--creator-space-2); padding:var(--creator-space-3); }
+.export-panel-heading { display:flex; justify-content:space-between; align-items:flex-start; gap:var(--creator-space-3); }
+.export-panel h2 { display:flex; align-items:center; gap:var(--creator-space-2); font-size:17px; }
+.export-panel-heading p { margin:var(--creator-space-1) 0 0; font-size:12px; }
+.export-format { color:var(--creator-text-secondary); font:11px var(--creator-font-mono); }
+.export-panel-actions { display:flex; gap:var(--creator-space-1); align-items:center; }
+.export-cancel { color:var(--creator-danger); }
+.export-progress { display:grid; gap:var(--creator-space-1); padding:var(--creator-space-2); border:1px solid var(--creator-border); border-radius:var(--creator-radius-sm); background:var(--creator-surface-muted); }
+.export-progress-caption { display:flex; justify-content:space-between; color:var(--creator-text-secondary); font-size:12px; }
+.export-progress progress { width:100%; height:10px; overflow:hidden; border:0; border-radius:var(--creator-radius-sm); accent-color:var(--creator-accent); }
+.export-progress progress::-webkit-progress-bar { background:var(--creator-border); border-radius:var(--creator-radius-sm); }
+.export-progress progress::-webkit-progress-value { background:var(--creator-accent); border-radius:var(--creator-radius-sm); }
+.export-help { margin:0; color:var(--creator-text-tertiary); font-size:11px; }
+.export-help code { font-family:var(--creator-font-mono); }
+.export-output-path { margin:0; font-size:11px; overflow-wrap:anywhere; }
+.export-output-path strong { color:var(--creator-success); font-family:var(--creator-font-mono); font-weight:550; }
+.export-error { margin:0; padding:var(--creator-space-1); border:1px solid var(--creator-danger); border-radius:var(--creator-radius-sm); background:var(--creator-danger-subtle); color:var(--creator-danger); font-size:12px; overflow-wrap:anywhere; }
+@media(max-width:800px){ .export-panel-heading { flex-direction:column; } .export-panel-actions { flex-wrap:wrap; } }

@@ -4,5 +4,6 @@ members = [
   "crates/project-core",
   "crates/media-core",
   "crates/timeline-core",
+  "crates/render-core",
 ]
 resolver = "2"

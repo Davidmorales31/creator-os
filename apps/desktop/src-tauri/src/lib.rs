@@ -1,8 +1,11 @@
+mod export_adapter;
+mod export_jobs;
 mod media_repository;
 mod preview_server;
 mod project_repository;
 mod timeline_commands;
 
+use export_jobs::{cancel_export, get_export_status, start_export, ExportManager};
 use media_repository::{import_media, list_project_media};
 use preview_server::{get_media_preview_url, start_preview_server};
 use project_repository::{create_project, list_recent_projects, open_project};
@@ -19,6 +22,7 @@ pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_dialog::init())
         .manage(TimelineWriteGuard::default())
+        .manage(ExportManager::default())
         .setup(|app| {
             let state = start_preview_server(app.handle())
                 .map_err(|error| std::io::Error::other(error.message))?;
@@ -34,6 +38,9 @@ pub fn run() {
             list_project_media,
             get_timeline,
             edit_timeline,
+            start_export,
+            get_export_status,
+            cancel_export,
             get_media_preview_url
         ])
         .run(tauri::generate_context!())
