@@ -1,0 +1,12 @@
+[package]
+name = "creator-os-render-core"
+version = "0.0.1"
+edition = "2021"
+license = "MIT"
+description = "Pure Creator OS export planning rules"
+
+[dependencies]
+creator-os-timeline-core = { path = "../timeline-core" }
+creator-os-media-core = { path = "../media-core" }
+serde = { version = "1", features = ["derive"] }
+thiserror = "2"

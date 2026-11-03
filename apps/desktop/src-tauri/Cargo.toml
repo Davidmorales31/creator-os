@@ -14,5 +14,20 @@ tauri-build = { version = "2", features = [] }
 
 [dependencies]
 tauri = { version = "2", features = [] }
+tauri-plugin-dialog = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
+creator-os-project-core = { path = "../../../crates/project-core" }
+creator-os-media-core = { path = "../../../crates/media-core" }
+uuid = { version = "1", features = ["v4"] }
+chrono = { version = "0.4", default-features = false, features = ["clock"] }
+axum = "0.8"
+tokio = { version = "1", features = ["fs", "net"] }
+tower = { version = "0.5", features = ["util"] }
+tower-http = { version = "0.6", features = ["fs"] }
+
+creator-os-timeline-core = { path = "../../../crates/timeline-core" }
+
+creator-os-render-core = { path = "../../../crates/render-core" }
+
+creator-os-transcript-core = { path = "../../../crates/transcript-core" }
