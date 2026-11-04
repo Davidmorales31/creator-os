@@ -37,7 +37,7 @@ export function MediaPlayer({ projectId, asset, captionRevision = 0, previewRequ
   const [captionsLoading, setCaptionsLoading] = useState(false);
   const [captionsError, setCaptionsError] = useState<string | null>(null);
   const [sourceRecord, setSourceRecord] = useState<{ assetId: string; url: string } | null>(null);
-  const sourceUrl = sourceRecord?.assetId === asset?.id ? sourceRecord.url : null;
+  const sourceUrl = sourceRecord && sourceRecord.assetId === asset?.id ? sourceRecord.url : null;
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null); const [playing, setPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0); const [duration, setDuration] = useState(0); const [fitMode, setFitMode] = useState<FitMode>("fit");
