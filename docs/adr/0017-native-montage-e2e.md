@@ -1,6 +1,6 @@
 # ADR-0017 — Native single-track montage UI and source handoff regression
 
-- Status: Proposed (CI validation required before acceptance)
+- Status: Accepted (CI evidence reviewed)
 - Date: 2026-11-04
 - Issue: #38
 - Depends on: ADR-0012, ADR-0013, ADR-0016
@@ -24,3 +24,11 @@ Green CI only confirms this exercised Linux WebKitGTK two-source montage flow; i
 - Rewrite montage infrastructure to use another media engine: not warranted without a separate upstream assessment and performance/compatibility evidence.
 - Only unit tests/Chromium mocks: cannot catch native FFprobe/WebKit handoff bugs.
 - GUI pixel-position automation: fragile compared with accessible DOM selectors and typed commands.
+
+## Acceptance record — 2026-11-04
+
+Issue [#38](https://github.com/Davidmorales31/creator-os/issues/38) and PR [#40](https://github.com/Davidmorales31/creator-os/pull/40) were integrated into main at merge commit `89c61eb0fed216a1dcc7753bf9890690bb796b34` after green [frontend, Rust and Python checks](https://github.com/Davidmorales31/creator-os/actions/runs/41915952782) and [real Linux Tauri native checks](https://github.com/Davidmorales31/creator-os/actions/runs/41915952834). Inspected native montage evidence includes `result.json` (`passed`), two light/dark PNG captures and WebDriver logs.
+
+The test proved real UI timeline persistence, trim/undo/redo, VP8→VP9 automatic source change with the second native WebKit decoder clock advancing (`readyState=4`), Stop cancellation, explicit gap error and unchanged source media SHA-256. A previously hidden cross-language bug was diagnosed from real native CI: Rust accepted camelCase enum variant types but expected snake_case fields (`clip_id` instead of frontend `clipId`). `#[serde(rename_all_fields = "camelCase")]` fixes the typed Rust boundary; unit tests cover move, split, trim, delete and nested Tauri commands. The existing project manifest format remains unchanged.
+
+**Limitations remain:** no gapless/frame-perfect or universal codec guarantee; no verified GTK file chooser, multitrack compositor, Windows/macOS manual acceptance or signed installer. Reuse assessment for future functionality remains gated by [#41](https://github.com/Davidmorales31/creator-os/issues/41).

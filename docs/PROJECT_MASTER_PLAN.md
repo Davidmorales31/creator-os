@@ -37,11 +37,11 @@ The original GitHub repository was created as `Davidmorales31/creator-os`. The u
 
 ## Snapshot confirmed on 2026-11-04
 
-- Linux Tauri release native startup, project persistence and a VP8/VP9 FFprobe import/playback E2E passed CI.
-- PR #37 merged; Issue #36 closed.
-- `main` and `develop` at `e1aafeb3124d2efb03e71134786dcd5cad780b5d`.
-- Issue #38 planned v0.16 native timeline and sequential montage regression.
-- Important pending tasks: manual native acceptance on Linux/Windows/macOS, external repo integration audit and recovery of the **original plan**.
+- Linux Tauri release startup, project persistence, FFprobe VP8/VP9 playback and real **two-clip VP8→VP9 timeline montage** E2E passed CI.
+- PR [#40](https://github.com/Davidmorales31/creator-os/pull/40) merged; Issue #38 closed. Also repaired the real Rust/TypeScript `TimelineOperation` camelCase argument mismatch with regression tests.
+- `main` and `develop` synchronized at `89c61eb0fed216a1dcc7753bf9890690bb796b34` after #40. This is a **historical snapshot; recheck live**.
+- Issue [#41](https://github.com/Davidmorales31/creator-os/issues/41) remains **open**: recover the owner's original selected open-source GitHub repositories and audit integration/licensing before new product modules.
+- Important remaining gates: native manual acceptance on Linux/Windows/macOS; external upstream shortlist and integration plan; no frame-perfect/gapless guarantee or release installers.
 
 **This snapshot is not a promise that those refs/issues remain unchanged. Check GitHub.**
 

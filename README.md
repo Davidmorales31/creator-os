@@ -2,7 +2,7 @@
 
 **Creator OS** es un editor de video de escritorio, *local-first* y open source, enfocado en flujos de trabajo de creadores de contenido.
 
-**Estado:** prototipo funcional con reproducción secuencial v0.12 y validaciones nativas Linux v0.13–v0.15 integradas en `main`. Se está validando v0.16 (#38), reproducción del montaje con dos fuentes en el Tauri real; **no es todavía una versión de producción ni un instalador validado**. Las pruebas manuales multiplataforma siguen pendientes.
+**Estado:** prototipo funcional con reproducción secuencial v0.12 y validaciones nativas Linux v0.13–v0.16 integradas en `main`. La v0.16 valida el montaje de dos clips VP8→VP9 y corrige la compatibilidad de comandos de edición TypeScript/Rust. **No es todavía una versión de producción ni un instalador validado**: las pruebas manuales multiplataforma siguen pendientes. Antes de crear nuevos módulos, resolver el [Issue #41](https://github.com/Davidmorales31/creator-os/issues/41) de integración open source.
 
 ## Plan maestro y reutilización open source
 
