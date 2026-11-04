@@ -12,6 +12,7 @@ on:
       - "pnpm-lock.yaml"
       - "package.json"
       - "scripts/check-native-assets.py"
+      - "scripts/smoke-native-startup.py"
       - ".github/workflows/native-desktop.yml"
   workflow_dispatch:
 
@@ -20,7 +21,7 @@ permissions:
 
 jobs:
   linux-native:
-    name: Compile Tauri 2 native (Linux)
+    name: Build and smoke-test Tauri 2 native (Linux)
     runs-on: ubuntu-24.04
     timeout-minutes: 45
     steps:
@@ -50,7 +51,11 @@ jobs:
             libayatana-appindicator3-dev \
             librsvg2-dev \
             ffmpeg \
-            python3
+            python3 \
+            xvfb \
+            xdotool \
+            imagemagick \
+            openbox
       - name: Verify native icons and Tauri metadata
         run: python3 scripts/check-native-assets.py
       - name: Install frontend dependencies
@@ -68,3 +73,26 @@ jobs:
           file target/release/creator-os-desktop
           file target/release/creator-os-desktop | grep -q 'ELF'
           echo "Native Tauri Linux binary built successfully."
+      - name: Smoke-test actual native release window in Xvfb
+        timeout-minutes: 2
+        run: |
+          mkdir -p native-smoke
+          timeout --signal=TERM --kill-after=5s 90s \
+            xvfb-run -a -s "-screen 0 1440x900x24" \
+            bash -euo pipefail -c '
+              openbox --sm-disable > native-smoke/window-manager.log 2>&1 &
+              wm_pid=$!
+              trap "kill $wm_pid 2>/dev/null || true; wait $wm_pid 2>/dev/null || true" EXIT
+              sleep 2
+              kill -0 "$wm_pid"
+              python3 scripts/smoke-native-startup.py \
+                target/release/creator-os-desktop --output native-smoke --timeout 45
+            '
+      - name: Upload native startup logs and screenshot
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: creator-os-native-linux-startup
+          path: native-smoke/
+          if-no-files-found: warn
+          retention-days: 30
