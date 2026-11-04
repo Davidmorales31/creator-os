@@ -2,7 +2,7 @@
 
 **Creator OS** es un editor de video de escritorio, *local-first* y open source, enfocado en flujos de trabajo de creadores de contenido.
 
-**Estado:** prototipo funcional con reproducción secuencial multifuente v0.12 y comprobación de arranque nativo Linux v0.13 integradas en `main`. Las pruebas E2E nativas v0.14 están en desarrollo; **no es todavía una versión de producción ni un instalador validado**. Pruebas funcionales multiplataforma pendientes.
+**Estado:** prototipo funcional con reproducción secuencial v0.12, arranque Tauri Linux v0.13 y E2E nativo de proyectos v0.14 integrados en `main`. La validación nativa de medios v0.15 se desarrolla en `develop`; **no es todavía una versión de producción ni un instalador validado**. Las pruebas manuales multiplataforma siguen pendientes.
 
 ## Módulos implementados
 
@@ -50,7 +50,7 @@ Ver [Política de ramas](docs/development/BRANCH_POLICY.md), [Constitución](CON
 
 ### Prueba nativa
 
-El flujo [Native desktop build](.github/workflows/native-desktop.yml) compila el ejecutable Tauri en Linux y, desde v0.13, incluye un smoke test de **arranque real en Xvfb**, con captura y logs. Desde v0.14, la rama de desarrollo añade E2E real de creación/reapertura de proyectos con Tauri WebDriver sobre Linux. El smoke v0.13 **no certifica funciones de edición ni el comportamiento en Windows/macOS**. Ver [lista de aceptación nativa](docs/quality/NATIVE_ACCEPTANCE.md).
+El flujo [Native desktop build](.github/workflows/native-desktop.yml) compila el ejecutable Tauri en Linux y, desde v0.13, incluye un smoke test de **arranque real en Xvfb**, con captura y logs. Desde v0.14, CI valida creación y persistencia reales de proyectos con Tauri WebDriver sobre Linux. La v0.15 añade en `develop` una prueba de importación FFprobe y reproducción VP8/VP9 en el WebView nativo. El smoke v0.13 **no certifica funciones de edición ni el comportamiento en Windows/macOS**. Ver [lista de aceptación nativa](docs/quality/NATIVE_ACCEPTANCE.md).
 
 ## Licencia
 
