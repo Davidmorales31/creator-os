@@ -31,6 +31,10 @@ GitHub code, commits, issues, PR checks and ADRs are the authoritative source fo
 6. Record irreversible choices in ADRs; do not rewrite the accepted ADR history to conceal changes.
 7. Do not claim testing of Windows/macOS, installers, codecs or flows that were not actually exercised.
 
+## Historical origin (user-provided conversation excerpt)
+
+The original GitHub repository was created as `Davidmorales31/creator-os`. The user-provided transcript records a foundation commit beginning `532c61e` with `CONSTITUTION.md`, ADR-0001, CI, monorepo pnpm, React/TypeScript, Tauri/Rust, Python/FastAPI, design tokens and MIT licensing. The initial backlog included Issue #1 Project System, #2 Media Import, #3 Player/Preview and #4 Timeline; PR #5 then implemented a versioned `project.json` and typed native project commands. These are **historical notes from the user**, not a claim that the earlier feature branch or CI state is current.
+
 ## Snapshot confirmed on 2026-11-04
 
 - Linux Tauri release native startup, project persistence and a VP8/VP9 FFprobe import/playback E2E passed CI.
