@@ -15,6 +15,7 @@ on:
       - "scripts/smoke-native-startup.py"
       - "scripts/test-native-projects.py"
       - "scripts/test-native-media.py"
+      - "scripts/test-native-montage.py"
       - ".github/workflows/native-desktop.yml"
   workflow_dispatch:
 
@@ -61,6 +62,9 @@ jobs:
             gstreamer1.0-plugins-good \
             gstreamer1.0-plugins-bad \
             gstreamer1.0-libav
+      - name: Check Python E2E harness syntax before compiling native release
+        run: |
+          python3 -m py_compile scripts/test-native-projects.py scripts/test-native-media.py scripts/test-native-montage.py
       - name: Verify native icons and Tauri metadata
         run: python3 scripts/check-native-assets.py
       - name: Install frontend dependencies
@@ -151,5 +155,28 @@ jobs:
         with:
           name: creator-os-native-linux-media-vp8-vp9
           path: native-media/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Real native montage VP8 to VP9 E2E (existing Tauri WebKitGTK)
+        timeout-minutes: 5
+        run: |
+          mkdir -p native-montage
+          timeout --signal=TERM --kill-after=5s 240s \
+            xvfb-run -a -s "-screen 0 1440x900x24" \
+            bash -euo pipefail -c '
+              openbox --sm-disable > native-montage/window-manager.log 2>&1 &
+              wm_pid=$!
+              trap "kill $wm_pid 2>/dev/null || true; wait $wm_pid 2>/dev/null || true" EXIT
+              sleep 2
+              kill -0 "$wm_pid"
+              python3 scripts/test-native-montage.py \
+                target/release/creator-os-desktop --output native-montage
+            '
+      - name: Upload native montage and timeline E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: creator-os-native-linux-timeline-montage-vp8-vp9
+          path: native-montage/
           if-no-files-found: warn
           retention-days: 30

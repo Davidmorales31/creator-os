@@ -1,6 +1,6 @@
 # ADR-0016 — Native FFprobe import and two-codec playback E2E
 
-- Status: Proposed; acceptance requires green CI for Issue #36
+- Status: Accepted after v0.15 PR #37 validation
 - Date: 2026-11-04
 - Issue: #36
 - Builds on: ADR-0015 and ADR-0004
@@ -24,3 +24,7 @@ A green test establishes two **specific VP8 and VP9 WebM** playback paths on Lin
 - Mocking browser media/FFprobe commands: would not validate the application/infrastructure integration.
 - Bundling extra multimedia codecs into the desktop application: requires separate licensing and distribution analysis.
 - Testing editor/render/transcription in a single issue: excessively broad and non-diagnostic failures.
+
+## Acceptance record
+
+PR [#37](https://github.com/Davidmorales31/creator-os/pull/37), integrated at `e1aafeb3124d2efb03e71134786dcd5cad780b5d`, passed [frontend/Rust/Python CI](https://github.com/Davidmorales31/creator-os/actions/runs/41905636273) and [native WebKitGTK media E2E](https://github.com/Davidmorales31/creator-os/actions/runs/41905636309). The media E2E JSON and screenshots confirmed imported VP8/VP9 source metadata, successful decoder playback and unchanged original SHA-256 checksums. The original limitations above remain in force.

@@ -1,4 +1,4 @@
-# Creator OS — Native desktop acceptance checklist (v0.15)
+# Creator OS — Native desktop acceptance checklist (v0.16)
 
 This page is a release gate and **must not be marked complete by browser screenshots alone**.
 
@@ -24,6 +24,14 @@ The test checks typed `ffprobe_unavailable` (missing executable) and `media_prob
 
 **Explicitly untested:** the GTK file picker (assets are imported through the typed native command from the test WebView), export, multi-clip montage, subtitle rendering, Python models, Windows/macOS and human release acceptance. This automated scope cannot be generalized to other codecs or operating systems.
 
+## Native two-clip timeline montage E2E (v0.16)
+
+The [montage E2E](../../scripts/test-native-montage.py) reuses the same release Tauri executable, stdlib WebDriver client, local FFmpeg VP8 and VP9 fixtures, and Linux WebKitGTK environment already validated in v0.15. It adds two **contiguous clips through real timeline UI controls**, inspects the typed `get_timeline` result and persisted `project.json`, trims the last clip and exercises undo/redo. It starts Montage with the native UI and waits for the video-clock-driven **automatic switch between distinct codec/source assets**, with the second clip actually playing. It also asserts stop/pause does not immediately resume, rejects a generated timeline gap with a clear warning, and checks SHA-256 of both original videos.
+
+Screenshots and a JSON report capture the observed two-clip montage states. The test uses existing application code and adapters — **no new editing engine or external runtime module**. Files are synthetic and temporary.
+
+This is a bounded Linux CI regression, **not** evidence of gapless/frame-perfect transitions, native GTK picker acceptance, multi-track compositing, installed codecs on end-user machines, Windows/macOS support, or signed-distribution readiness.
+
 ## Automated evidence matrix
 
 | Validation | Linux CI | Windows | macOS |
@@ -33,6 +41,7 @@ The test checks typed `ffprobe_unavailable` (missing executable) and `media_prob
 | Native startup screenshot, logs and structured outcome | Workflow required | Not tested | Not tested |
 | Native WebDriver: create/reopen project, restart persistence, theme | Workflow required since v0.14 | Not tested | Not tested |
 | Native FFprobe/bridge: real VP8/VP9 import, metadata, preview/playback, SHA-256 | Workflow required since v0.15 | Not tested | Not tested |
+| Native WebKit montage: UI two clips, trim/undo/redo, VP8→VP9 handoff, stop and gap error | Workflow required since v0.16 | Not tested | Not tested |
 
 Results are **required checks**, not marked passed until a given workflow run succeeds.
 
@@ -72,6 +81,7 @@ The headless smoke command requires Linux `xvfb`, `xdotool`, Openbox, ImageMagic
 ```sh
 xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-projects.py target/release/creator-os-desktop
 xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-media.py target/release/creator-os-desktop
+xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-montage.py target/release/creator-os-desktop
 ```
 
 Start a window manager inside the virtual display before running E2E, as done in CI. Neither test substitutes for a manual cross-platform review.
@@ -80,4 +90,4 @@ Start a window manager inside the virtual display before running E2E, as done in
 
 No paid APIs, cloud inference, runtime dependencies, FFmpeg/model bundles or user media are introduced. GitHub Actions runner minutes and artifact storage still have costs. Signing, proprietary codec/redistribution and trademark checks remain separate approvals.
 
-See [ADR-0010](../adr/0010-native-release-gate.md), [ADR-0014](../adr/0014-native-startup-smoke.md), [ADR-0015](../adr/0015-native-webdriver-project-e2e.md) and [ADR-0016](../adr/0016-native-media-e2e.md).
+See [ADR-0010](../adr/0010-native-release-gate.md), [ADR-0014](../adr/0014-native-startup-smoke.md), [ADR-0015](../adr/0015-native-webdriver-project-e2e.md), [ADR-0016](../adr/0016-native-media-e2e.md) and [ADR-0017](../adr/0017-native-montage-e2e.md).
