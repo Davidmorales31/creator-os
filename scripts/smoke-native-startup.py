@@ -30,12 +30,12 @@ def find_window() -> str | None:
     return None
 
 
-def geometry_for(window_id: str) -> tuple[int, int]:
+def geometry_for(window_id: str) -> tuple[int, int, int, int]:
     result = command("xdotool", "getwindowgeometry", "--shell", window_id)
     if result.returncode != 0:
         raise RuntimeError("Cannot read native window geometry: " + result.stderr.strip())
     values = dict(line.strip().split("=", 1) for line in result.stdout.splitlines() if "=" in line)
-    return int(values["WIDTH"]), int(values["HEIGHT"])
+    return int(values["X"]), int(values["Y"]), int(values["WIDTH"]), int(values["HEIGHT"])
 
 
 def run(executable: Path, output: Path, timeout: int) -> None:
@@ -62,6 +62,7 @@ def run(executable: Path, output: Path, timeout: int) -> None:
         log_path = output / "native-stdout-stderr.log"
         report_path = output / "result.json"
         screenshot = output / "native-window.png"
+        desktop_screenshot = output / "native-desktop.png"
         report: dict[str, object] = {
             "test": "Linux Tauri release ELF X11 startup",
             "result": "failed",
@@ -85,8 +86,8 @@ def run(executable: Path, output: Path, timeout: int) -> None:
                     time.sleep(0.5)
                 if not window_id:
                     raise RuntimeError(f"Native window not visible after {timeout}s")
-                width, height = geometry_for(window_id)
-                report["window_geometry"] = {"width": width, "height": height}
+                x, y, width, height = geometry_for(window_id)
+                report["window_geometry"] = {"x": x, "y": y, "width": width, "height": height}
                 if width < 960 or height < 640:
                     raise RuntimeError(f"Native window too small: {width}x{height}")
                 time.sleep(2)
@@ -94,13 +95,37 @@ def run(executable: Path, output: Path, timeout: int) -> None:
                     raise RuntimeError(f"Application crashed shortly after window creation (code {process.returncode})")
                 if find_window() != window_id:
                     raise RuntimeError("Native window disappeared during stability check")
-                capture = command("import", "-window", window_id, str(screenshot))
+                # XGetImage of the GTK toplevel may return black because WebKit paints
+                # into nested X11 child windows. Capture the *composited screen* instead.
+                # A window manager is started by the workflow before invoking the smoke.
+                focus = command("xdotool", "windowactivate", "--sync", window_id)
+                if focus.returncode != 0:
+                    raise RuntimeError("Cannot activate native window: " + focus.stderr.strip())
+                time.sleep(1)
+                capture = command("import", "-window", "root", str(desktop_screenshot))
                 if capture.returncode != 0:
-                    raise RuntimeError("Native X11 screenshot failed: " + capture.stderr.strip())
+                    raise RuntimeError("Native X11 desktop screenshot failed: " + capture.stderr.strip())
+                if not desktop_screenshot.is_file():
+                    raise RuntimeError("Native X11 desktop screenshot is missing")
+                if x < 0 or y < 0 or x + width > 1440 or y + height > 900:
+                    raise RuntimeError(f"Native window is outside CI capture screen: {x},{y} {width}x{height}")
+                cropped = command(
+                    "convert", str(desktop_screenshot), "-crop", f"{width}x{height}+{x}+{y}",
+                    "+repage", str(screenshot),
+                )
+                if cropped.returncode != 0:
+                    raise RuntimeError("Cropping native screenshot failed: " + cropped.stderr.strip())
                 if not screenshot.is_file() or screenshot.stat().st_size < 1024:
-                    raise RuntimeError("Native screenshot missing or unexpectedly small")
+                    raise RuntimeError("Native screenshot is blank or unexpectedly small")
                 if screenshot.read_bytes()[:8] != bytes.fromhex("89504e470d0a1a0a"):
                     raise RuntimeError("Native screenshot is not a PNG")
+                unique = command("identify", "-format", "%k", str(screenshot))
+                if unique.returncode != 0:
+                    raise RuntimeError("Cannot inspect native screenshot colors: " + unique.stderr.strip())
+                color_count = int(unique.stdout.strip())
+                report["screenshot_colors"] = color_count
+                if color_count < 20:
+                    raise RuntimeError(f"Native screenshot appears blank: only {color_count} colors")
                 report["result"] = "passed"
                 report["screenshot_bytes"] = screenshot.stat().st_size
                 print(f"Native Tauri startup smoke passed: Creator OS window {width}x{height}")
