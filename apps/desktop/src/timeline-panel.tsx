@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
+import { isEditableKeyboardTarget, timelineShortcutForKey } from "./timeline-shortcuts";
 import { formatDuration, type MediaAsset } from "./media";
 import { normalizeCommandError } from "./projects";
 import { editTimeline, getTimeline, type Timeline, type TimelineClip, type TimelineEdit, type TrackKind } from "./timeline";
@@ -174,6 +175,24 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
       durationFrames: selectedClip.durationFrames - fps,
     } });
   }
+  function handleTimelineKeyDown(event: KeyboardEvent<HTMLElement>) {
+    const action = timelineShortcutForKey(event.nativeEvent, isEditableKeyboardTarget(event.target));
+    if (!action || !timeline || busy) return;
+    if (action === "undo" && timeline.undoStack.length > 0) {
+      event.preventDefault();
+      void dispatch({ action: "undo" }, null);
+    } else if (action === "redo" && timeline.redoStack.length > 0) {
+      event.preventDefault();
+      void dispatch({ action: "redo" }, null);
+    } else if (action === "split" && selectedClip && selectedClip.durationFrames >= 2) {
+      event.preventDefault();
+      split();
+    } else if (action === "delete" && selectedClip) {
+      event.preventDefault();
+      void dispatch({ action: "apply", operation: { type: "deleteClip", clipId: selectedClip.id } }, null);
+    }
+  }
+
   function trimEnd() {
     if (!selectedClip || selectedClip.durationFrames <= fps) return;
     void dispatch({ action: "apply", operation: {
@@ -185,7 +204,7 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
   }
 
   return (
-    <section className="panel timeline-live" aria-label="Línea de tiempo">
+    <section className="panel timeline-live" aria-label="Línea de tiempo" aria-describedby="timeline-shortcuts" tabIndex={0} onKeyDown={handleTimelineKeyDown}>
       <div className="timeline-toolbar">
         <div><span className="eyebrow">EDICIÓN NO DESTRUCTIVA</span><h2>Timeline <span className="timeline-count">{timeline?.clips.length ?? 0} clips</span></h2></div>
         <div className="timeline-tools">
@@ -197,17 +216,17 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
           <button type="button" className="secondary-button" onClick={() => addTrack("video")} disabled={!canEdit} title="Crear pista de video">+ Pista video</button>
           <button type="button" className="secondary-button" onClick={() => addTrack("audio")} disabled={!canEdit} title="Crear pista de audio">+ Pista audio</button>
           <button type="button" className="button button-primary" onClick={addAsset} disabled={!canEdit || !selectedAsset} title="Añadir el medio seleccionado a su pista">+ Añadir clip</button>
-          <button type="button" className="secondary-button" onClick={() => void dispatch({ action: "undo" }, null)} disabled={!canEdit || (timeline?.undoStack.length ?? 0) === 0} title="Deshacer último cambio">↶ Deshacer</button>
-          <button type="button" className="secondary-button" onClick={() => void dispatch({ action: "redo" }, null)} disabled={!canEdit || (timeline?.redoStack.length ?? 0) === 0} title="Rehacer último cambio">↷ Rehacer</button>
+          <button type="button" className="secondary-button" onClick={() => void dispatch({ action: "undo" }, null)} disabled={!canEdit || (timeline?.undoStack.length ?? 0) === 0} aria-keyshortcuts="Control+Z Meta+Z" title="Deshacer último cambio">↶ Deshacer</button>
+          <button type="button" className="secondary-button" onClick={() => void dispatch({ action: "redo" }, null)} disabled={!canEdit || (timeline?.redoStack.length ?? 0) === 0} aria-keyshortcuts="Control+Shift+Z Meta+Shift+Z Control+Y" title="Rehacer último cambio">↷ Rehacer</button>
         </div>
       </div>
       <div className="timeline-operations" aria-label="Operaciones del clip seleccionado">
         <button type="button" className="secondary-button" onClick={() => move(-fps)} disabled={!canEdit || !selectedClip} title="Mover un segundo a la izquierda">← 1 s</button>
         <button type="button" className="secondary-button" onClick={() => move(fps)} disabled={!canEdit || !selectedClip} title="Mover un segundo a la derecha">1 s →</button>
-        <button type="button" className="secondary-button" onClick={split} disabled={!canEdit || !selectedClip || selectedClip.durationFrames < 2} title="Dividir el clip por la mitad">Dividir</button>
+        <button type="button" className="secondary-button" onClick={split} disabled={!canEdit || !selectedClip || selectedClip.durationFrames < 2} aria-keyshortcuts="S" title="Dividir el clip por la mitad">Dividir</button>
         <button type="button" className="secondary-button" onClick={trimStart} disabled={!canEdit || !selectedClip || selectedClip.durationFrames <= fps}>Recortar inicio −1 s</button>
         <button type="button" className="secondary-button" onClick={trimEnd} disabled={!canEdit || !selectedClip || selectedClip.durationFrames <= fps}>Recortar fin −1 s</button>
-        <button type="button" className="secondary-button timeline-delete" onClick={() => selectedClip && void dispatch({ action: "apply", operation: { type: "deleteClip", clipId: selectedClip.id } }, null)} disabled={!canEdit || !selectedClip}>Eliminar</button>
+        <button type="button" className="secondary-button timeline-delete" onClick={() => selectedClip && void dispatch({ action: "apply", operation: { type: "deleteClip", clipId: selectedClip.id } }, null)} disabled={!canEdit || !selectedClip} aria-keyshortcuts="Delete Backspace">Eliminar</button>
       </div>
       {selectedClip && timeline && (
         <div className="timeline-selection">
@@ -251,6 +270,7 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
       <p className="timeline-preview-note">{montageSession
         ? `Reproduciendo clip ${montageSession.index + 1} de ${montageSession.plan.segments.length} · una pista de video, sin mezcla de audio externa.`
         : "Vista previa individual; «Reproducir montaje» encadena una sola pista continua de video."}</p>
+      <p id="timeline-shortcuts" className="timeline-help">Atajos con foco en el timeline: Ctrl/Cmd + Z deshacer · Ctrl/Cmd + Shift + Z rehacer · S dividir · Supr eliminar. No se aplican al escribir en campos.</p>
       {!timeline ? <p className="timeline-help">Cargando timeline…</p> : timeline.clips.length === 0 ?
         <p className="timeline-help">Selecciona un video o audio de la biblioteca y pulsa “Añadir clip”. Los archivos originales no se modifican.</p> :
         <p className="timeline-help">Selecciona un clip para moverlo, dividirlo o recortarlo. Los cambios se guardan en el proyecto. Revisión {timeline.revision}.</p>}

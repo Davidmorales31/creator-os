@@ -13,7 +13,7 @@
 - Proyectos locales: crear, abrir, recientes, versión de esquema/migración.
 - Importación de medios y metadatos con FFprobe; preview local mediante un gateway de loopback.
 - Interfaz claro/oscuro, identidad **Totem Cut**, navegación de escritorio.
-- Timeline de video/audio con clips, división, recorte, mover, borrar y undo/redo persistido.
+- Timeline de video/audio con clips, división, recorte, mover, borrar y undo/redo persistido. Atajos contextualizados al foco del timeline: Ctrl/Cmd+Z (deshacer), Ctrl/Cmd+Shift+Z o Ctrl+Y (rehacer), S (dividir) y Supr/Retroceso (eliminar); se desactivan mientras se escribe en campos.
 - Exportación MP4 H.264/AAC con FFmpeg para **una pista de video continua**.
 - Transcripción de segmentos temporizados con proveedor Python opcional `faster-whisper`, CPU-first, con consentimiento previo para descargar modelos.
 - Exportación de subtítulos SRT y WebVTT.
@@ -54,7 +54,7 @@ Ver [Política de ramas](docs/development/BRANCH_POLICY.md), [Constitución](CON
 
 ### Prueba nativa
 
-El flujo [Native desktop build](.github/workflows/native-desktop.yml) compila el ejecutable Tauri en Linux y, desde v0.13, incluye un smoke test de **arranque real en Xvfb**, con captura y logs. Desde v0.14, CI valida creación y persistencia reales de proyectos con Tauri WebDriver sobre Linux. La v0.15 integra una prueba de importación FFprobe y reproducción VP8/VP9 en el WebView nativo. La v0.16 añade a CI pruebas de dos clips contiguos, undo/redo y cambio de fuente VP8→VP9 en un montaje real. El smoke v0.13 **no certifica funciones de edición ni el comportamiento en Windows/macOS**. Ver [lista de aceptación nativa](docs/quality/NATIVE_ACCEPTANCE.md).
+El flujo [Native desktop build](.github/workflows/native-desktop.yml) compila el ejecutable Tauri en Linux y, desde v0.13, incluye un smoke test de **arranque real en Xvfb**, con captura y logs. Desde v0.14, CI valida creación y persistencia reales de proyectos con Tauri WebDriver sobre Linux. La v0.15 integra una prueba de importación FFprobe y reproducción VP8/VP9 en el WebView nativo. La v0.16 añade a CI pruebas de dos clips contiguos, undo/redo y cambio de fuente VP8→VP9 en un montaje real. La v0.17 añade atajos de edición focalizados al timeline y comprueba operaciones de teclado en el mismo E2E nativo. El smoke v0.13 **no certifica funciones de edición ni el comportamiento en Windows/macOS**. Ver [lista de aceptación nativa](docs/quality/NATIVE_ACCEPTANCE.md).
 
 ## Licencia
 

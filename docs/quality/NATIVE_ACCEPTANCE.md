@@ -1,4 +1,4 @@
-# Creator OS — Native desktop acceptance checklist (v0.16)
+# Creator OS — Native desktop acceptance checklist (v0.17)
 
 This page is a release gate and **must not be marked complete by browser screenshots alone**.
 
@@ -32,6 +32,12 @@ Screenshots and a JSON report capture the observed two-clip montage states. The 
 
 This is a bounded Linux CI regression, **not** evidence of gapless/frame-perfect transitions, native GTK picker acceptance, multi-track compositing, installed codecs on end-user machines, Windows/macOS support, or signed-distribution readiness.
 
+## Contextual timeline keyboard editing (v0.17)
+
+The existing timeline accepts keyboard shortcuts **only while keyboard focus is inside its section**: `Ctrl/Cmd+Z` undo, `Ctrl/Cmd+Shift+Z` or `Ctrl+Y` redo, `S` split the selected clip, and `Delete/Backspace` delete it. Keyboard shortcuts skip editable text inputs/selects/contenteditable, repeated keys, IME composition and unrelated modifier combinations. They are routed to the existing versioned typed `editTimeline` command; media files are never modified.
+
+[Node shortcut tests](../../scripts/test-timeline-shortcuts.mjs) verify mapping and exclusions. The [real native montage E2E](../../scripts/test-native-montage.py) now also delivers W3C WebDriver keyboard actions into the **focused Tauri WebKitGTK** timeline, then checks Rust timeline revisions and undo/redo persistence after each edit. It never fakes DOM `KeyboardEvent` instances. A green run validates this bounded Linux path, not universal keyboard accessibility.
+
 ## Automated evidence matrix
 
 | Validation | Linux CI | Windows | macOS |
@@ -42,6 +48,7 @@ This is a bounded Linux CI regression, **not** evidence of gapless/frame-perfect
 | Native WebDriver: create/reopen project, restart persistence, theme | Workflow required since v0.14 | Not tested | Not tested |
 | Native FFprobe/bridge: real VP8/VP9 import, metadata, preview/playback, SHA-256 | Workflow required since v0.15 | Not tested | Not tested |
 | Native WebKit montage: UI two clips, trim/undo/redo, VP8→VP9 handoff, stop and gap error | Workflow required since v0.16 | Not tested | Not tested |
+| Timeline keyboard shortcuts with native W3C key actions and persisted Rust undo/redo | Workflow required since v0.17 | Not tested | Not tested |
 
 Results are **required checks**, not marked passed until a given workflow run succeeds.
 
@@ -53,6 +60,7 @@ Results are **required checks**, not marked passed until a given workflow run su
 | Create/open/reopen project, verify `project.json` migration and recent list | Pending | Pending | Pending |
 | Import sample video/audio, inspect FFprobe metadata and preview playback/seek | Pending | Pending | Pending |
 | Add/split/move/trim/delete timeline clips; undo/redo survives reopen | Pending | Pending | Pending |
+| Keyboard shortcuts in focused timeline, including input/IME exclusion and screen-reader behavior | Pending | Pending | Pending |
 | Sequential montage playback across two media codecs, seek and stop | Pending | Pending | Pending |
 | Export contiguous video clips into MP4 and play result in system player | Pending | Pending | Pending |
 | Cancel an active render and inspect `.partial.mp4` cleanup | Pending | Pending | Pending |
