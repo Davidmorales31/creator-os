@@ -1,4 +1,4 @@
-# Creator OS — Native desktop acceptance checklist (v0.14)
+# Creator OS — Native desktop acceptance checklist (v0.15)
 
 This page is a release gate and **must not be marked complete by browser screenshots alone**.
 
@@ -16,6 +16,14 @@ After the startup check, CI installs `webkit2gtk-driver` and the pinned `tauri-d
 
 The workflow collects driver logs, per-step screenshots and JSON results even when the test fails. Success is **not assumed** until the workflow has actually passed. Media import dialogs, FFmpeg transcoding, captions and Windows/macOS remain excluded.
 
+## Real native media import and playback E2E (v0.15)
+
+The [media E2E script](../../scripts/test-native-media.py) runs against the **real Tauri release executable** using the same WebKitGTK/tauri-driver stack as v0.14. Local FFmpeg creates a small eight-second VP8 WebM and a separate VP9 WebM in an isolated temporary directory. The test invokes `import_media` and `list_project_media` through the **genuine Tauri command bridge** in the app WebView (no mocked commands), verifies FFprobe metadata and the persisted media index, and checks that selecting each imported video in the native UI produces metadata and an advancing playback clock from the correct gateway asset ID.
+
+The test checks typed `ffprobe_unavailable` (missing executable) and `media_probe_failed` (invalid fixture), verifies SHA-256 of both originals before/after, and proves the project media directory contains only its catalog index. It captures native VP8 light-theme and VP9 dark-theme screenshots plus runner logs and a JSON result. The fixture media and HOME/XDG project files are temporary and are not committed or included in artifacts.
+
+**Explicitly untested:** the GTK file picker (assets are imported through the typed native command from the test WebView), export, multi-clip montage, subtitle rendering, Python models, Windows/macOS and human release acceptance. This automated scope cannot be generalized to other codecs or operating systems.
+
 ## Automated evidence matrix
 
 | Validation | Linux CI | Windows | macOS |
@@ -24,6 +32,7 @@ The workflow collects driver logs, per-step screenshots and JSON results even wh
 | Launch native executable and detect visible application window | Workflow required (Xvfb) | Not tested | Not tested |
 | Native startup screenshot, logs and structured outcome | Workflow required | Not tested | Not tested |
 | Native WebDriver: create/reopen project, restart persistence, theme | Workflow required since v0.14 | Not tested | Not tested |
+| Native FFprobe/bridge: real VP8/VP9 import, metadata, preview/playback, SHA-256 | Workflow required since v0.15 | Not tested | Not tested |
 
 Results are **required checks**, not marked passed until a given workflow run succeeds.
 
@@ -58,10 +67,11 @@ xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/smoke-native-startup.py t
 pnpm --dir apps/desktop exec tauri dev
 ```
 
-The headless smoke command requires Linux `xvfb`, `xdotool`, Openbox, ImageMagick and WebKitGTK/Tauri system libraries. The native E2E test additionally requires `WebKitWebDriver` and `tauri-driver`; after building, use:
+The headless smoke command requires Linux `xvfb`, `xdotool`, Openbox, ImageMagick and WebKitGTK/Tauri system libraries. The native E2E tests additionally require `WebKitWebDriver`, `tauri-driver` and GStreamer VP8/VP9 decoders; after building, use:
 
 ```sh
 xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-projects.py target/release/creator-os-desktop
+xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-media.py target/release/creator-os-desktop
 ```
 
 Start a window manager inside the virtual display before running E2E, as done in CI. Neither test substitutes for a manual cross-platform review.
@@ -70,4 +80,4 @@ Start a window manager inside the virtual display before running E2E, as done in
 
 No paid APIs, cloud inference, runtime dependencies, FFmpeg/model bundles or user media are introduced. GitHub Actions runner minutes and artifact storage still have costs. Signing, proprietary codec/redistribution and trademark checks remain separate approvals.
 
-See [ADR-0010](../adr/0010-native-release-gate.md) and [ADR-0014](../adr/0014-native-startup-smoke.md) and [ADR-0015](../adr/0015-native-webdriver-project-e2e.md).
+See [ADR-0010](../adr/0010-native-release-gate.md), [ADR-0014](../adr/0014-native-startup-smoke.md), [ADR-0015](../adr/0015-native-webdriver-project-e2e.md) and [ADR-0016](../adr/0016-native-media-e2e.md).

@@ -1,6 +1,6 @@
 # ADR-0015 — Real Tauri project E2E through Linux WebKit WebDriver
 
-- Status: Proposed; CI validation required before acceptance
+- Status: Accepted (v0.14 E2E evidence recorded after PR #35 merge)
 - Date: 2026-11-04
 - Issue: #34
 - Depends on: #32 / ADR-0014
@@ -25,3 +25,7 @@ Green WebDriver E2E only establishes the exercised Linux project and theme path,
 - Pixel-coordinate automation: fragile under scaling and language changes.
 - Add Node Selenium/WebdriverIO runtime libraries to Creator OS: unnecessary for a small fixed CI test; revisit if the suite grows.
 - Full editor + media end-to-end coverage in one PR: too broad; split by user workflow.
+ 
+## Acceptance record
+
+The original decision and limits remain unchanged. PR [#35](https://github.com/Davidmorales31/creator-os/pull/35), merged on 2026-11-04 at `c13b213264f5d8e97c1a991b586b633a53dc6dc3`, passed [CI](https://github.com/Davidmorales31/creator-os/actions/runs/41901727227) and [Linux native WebDriver project E2E](https://github.com/Davidmorales31/creator-os/actions/runs/41901727319), including screenshots and real project persistence. This evidence moves ADR-0015 from proposed to accepted without expanding claims beyond the exercised Linux flow.
