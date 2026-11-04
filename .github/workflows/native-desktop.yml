@@ -13,6 +13,7 @@ on:
       - "package.json"
       - "scripts/check-native-assets.py"
       - "scripts/smoke-native-startup.py"
+      - "scripts/test-native-projects.py"
       - ".github/workflows/native-desktop.yml"
   workflow_dispatch:
 
@@ -94,5 +95,34 @@ jobs:
         with:
           name: creator-os-native-linux-startup
           path: native-smoke/
+          if-no-files-found: warn
+          retention-days: 30
+      - name: Install native WebDriver test tools (CI only)
+        run: |
+          sudo apt-get install -y webkit2gtk-driver
+          cargo install tauri-driver --version 2.0.6 --locked
+          command -v tauri-driver
+          command -v WebKitWebDriver
+      - name: Real Tauri project persistence E2E (WebKitGTK WebDriver)
+        timeout-minutes: 5
+        run: |
+          mkdir -p native-e2e
+          timeout --signal=TERM --kill-after=5s 240s \
+            xvfb-run -a -s "-screen 0 1440x900x24" \
+            bash -euo pipefail -c '
+              openbox --sm-disable > native-e2e/window-manager.log 2>&1 &
+              wm_pid=$!
+              trap "kill $wm_pid 2>/dev/null || true; wait $wm_pid 2>/dev/null || true" EXIT
+              sleep 2
+              kill -0 "$wm_pid"
+              python3 scripts/test-native-projects.py \
+                target/release/creator-os-desktop --output native-e2e --timeout 55
+            '
+      - name: Upload native WebDriver E2E evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: creator-os-native-linux-webdriver-e2e
+          path: native-e2e/
           if-no-files-found: warn
           retention-days: 30
