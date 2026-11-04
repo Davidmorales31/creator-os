@@ -178,15 +178,19 @@ mod tests {
             .expect("UI native timeline command must decode without snake_case fields");
         match command {
             TimelineEdit::Apply {
-                operation: TimelineOperation::TrimClip {
-                    clip_id,
-                    start_frame,
-                    source_in_frame,
-                    duration_frames,
-                },
+                operation:
+                    TimelineOperation::TrimClip {
+                        clip_id,
+                        start_frame,
+                        source_in_frame,
+                        duration_frames,
+                    },
             } => {
                 assert_eq!(clip_id, "clip-1");
-                assert_eq!((start_frame, source_in_frame, duration_frames), (120, 24, 96));
+                assert_eq!(
+                    (start_frame, source_in_frame, duration_frames),
+                    (120, 24, 96)
+                );
             }
             _ => panic!("expected a trim edit"),
         }

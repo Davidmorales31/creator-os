@@ -80,7 +80,11 @@ impl Default for Timeline {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 // Variant names and their *fields* must agree with TypeScript TimelineOperation.
 // rename_all alone only renames variants, leaving struct-variant fields in snake_case.
-#[serde(tag = "type", rename_all = "camelCase", rename_all_fields = "camelCase")]
+#[serde(
+    tag = "type",
+    rename_all = "camelCase",
+    rename_all_fields = "camelCase"
+)]
 pub enum TimelineOperation {
     AddTrack {
         track: Track,
@@ -535,7 +539,10 @@ mod tests {
             let operation: TimelineOperation =
                 serde_json::from_value(input.clone()).expect("UI camelCase operation must decode");
             let encoded: Value = serde_json::to_value(operation).unwrap();
-            assert_eq!(encoded, input, "Rust command serialization must match TypeScript");
+            assert_eq!(
+                encoded, input,
+                "Rust command serialization must match TypeScript"
+            );
         }
     }
 
