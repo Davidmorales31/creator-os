@@ -2,7 +2,11 @@
 
 **Creator OS** es un editor de video de escritorio, *local-first* y open source, enfocado en flujos de trabajo de creadores de contenido.
 
-**Estado:** prototipo funcional con reproducción secuencial v0.12, arranque Tauri Linux v0.13 y E2E nativo de proyectos v0.14 integrados en `main`. La validación nativa de medios v0.15 se desarrolla en `develop`; **no es todavía una versión de producción ni un instalador validado**. Las pruebas manuales multiplataforma siguen pendientes.
+**Estado:** prototipo funcional con reproducción secuencial v0.12 y validaciones nativas Linux v0.13–v0.15 integradas en `main`. El siguiente issue planificado es v0.16 (#38); **no es todavía una versión de producción ni un instalador validado**. Las pruebas manuales multiplataforma siguen pendientes.
+
+## Plan maestro y reutilización open source
+
+**Estrategia del proyecto:** integrar y adaptar repositorios open source existentes siempre que sea viable y legalmente compatible; no reconstruir todo desde cero. La lista histórica exacta de repositorios seleccionados por el propietario está pendiente de recuperación y **no debe inventarse**. Antes de desarrollar módulos, lee [AGENTS.md](AGENTS.md), [plan maestro provisional](docs/PROJECT_MASTER_PLAN.md) y [registro de integraciones externas](docs/OPEN_SOURCE_INTEGRATIONS.md). El [índice en Drive](https://docs.google.com/document/d/1vq27TzAcozCOx2ec9aIMIcM3W6KKiRqOdstmszv5-Kc/edit?usp=drivesdk) es una guía de acceso, mientras GitHub conserva la verdad técnica.
 
 ## Módulos implementados
 
@@ -50,7 +54,7 @@ Ver [Política de ramas](docs/development/BRANCH_POLICY.md), [Constitución](CON
 
 ### Prueba nativa
 
-El flujo [Native desktop build](.github/workflows/native-desktop.yml) compila el ejecutable Tauri en Linux y, desde v0.13, incluye un smoke test de **arranque real en Xvfb**, con captura y logs. Desde v0.14, CI valida creación y persistencia reales de proyectos con Tauri WebDriver sobre Linux. La v0.15 añade en `develop` una prueba de importación FFprobe y reproducción VP8/VP9 en el WebView nativo. El smoke v0.13 **no certifica funciones de edición ni el comportamiento en Windows/macOS**. Ver [lista de aceptación nativa](docs/quality/NATIVE_ACCEPTANCE.md).
+El flujo [Native desktop build](.github/workflows/native-desktop.yml) compila el ejecutable Tauri en Linux y, desde v0.13, incluye un smoke test de **arranque real en Xvfb**, con captura y logs. Desde v0.14, CI valida creación y persistencia reales de proyectos con Tauri WebDriver sobre Linux. La v0.15 integra una prueba de importación FFprobe y reproducción VP8/VP9 en el WebView nativo. El smoke v0.13 **no certifica funciones de edición ni el comportamiento en Windows/macOS**. Ver [lista de aceptación nativa](docs/quality/NATIVE_ACCEPTANCE.md).
 
 ## Licencia
 
