@@ -25,6 +25,8 @@ For each entry include:
 
 **None confirmed yet. Await the original plan from the owner.**
 
+Preliminary **new and unapproved** third-party candidates are researched separately in [OPEN_SOURCE_CANDIDATE_RESEARCH.md](OPEN_SOURCE_CANDIDATE_RESEARCH.md). These must never be represented as the historical selection, an approved dependency, or an integration already present in the app.
+
 Do not confuse frameworks or infrastructure already present in Creator OS (Tauri, React, FFmpeg, optional faster-whisper) with an owner-approved list of **GitHub repositories to integrate**. A dependency inventory is not the same as an agreed upstream integration plan.
 
 ## Procedure

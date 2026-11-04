@@ -7,7 +7,7 @@
 
 1. Open and inspect the **live** GitHub repository, including the current heads of `main` and `develop`, open issues/PRs and applicable GitHub Actions. Do **not** assume a commit/issue status from a previous chat is current.
 2. Read [CONSTITUTION.md](CONSTITUTION.md), [CONTRIBUTING.md](CONTRIBUTING.md), [architecture](docs/architecture/ARCHITECTURE.md) and relevant [ADRs](docs/adr/).
-3. Read [Project master context](docs/PROJECT_MASTER_PLAN.md) and the [Open-source integration register](docs/OPEN_SOURCE_INTEGRATIONS.md) before selecting libraries or starting a new feature.
+3. Read [Project master context](docs/PROJECT_MASTER_PLAN.md) and the [Open-source integration register](docs/OPEN_SOURCE_INTEGRATIONS.md) before selecting libraries or starting a new feature. The [unapproved candidate research](docs/OPEN_SOURCE_CANDIDATE_RESEARCH.md) is exploratory and must **not** be confused with the owner’s unrecovered original list.
 4. Read the [Google Drive master index](https://docs.google.com/document/d/1vq27TzAcozCOx2ec9aIMIcM3W6KKiRqOdstmszv5-Kc/edit?usp=drivesdk) **when Drive is available**. This is a companion index; **Git is authoritative for current code and technical progress**.
 
 ## The strategic decision that must not be forgotten

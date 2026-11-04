@@ -17,6 +17,7 @@ The owner wants a coherent, local-first desktop application for content creation
 - Historical architectural decisions: [docs/adr](adr/)
 - Existing quality evidence: [docs/quality](quality/)
 - External repository decisions: [OPEN_SOURCE_INTEGRATIONS.md](OPEN_SOURCE_INTEGRATIONS.md)
+- Newly researched **unapproved** candidates (not the original list): [OPEN_SOURCE_CANDIDATE_RESEARCH.md](OPEN_SOURCE_CANDIDATE_RESEARCH.md)
 - Drive companion index: https://docs.google.com/document/d/1vq27TzAcozCOx2ec9aIMIcM3W6KKiRqOdstmszv5-Kc/edit?usp=drivesdk
 
 GitHub code, commits, issues, PR checks and ADRs are the authoritative source for **current technical state**. Drive is a cross-chat reading aid. Check GitHub live each session, because this document is a snapshot.
