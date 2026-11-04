@@ -25,6 +25,8 @@ jobs:
         run: node --experimental-strip-types scripts/test-timeline-preview.mjs
       - name: Verify montage sequencing contract
         run: node --experimental-strip-types scripts/test-montage-plan.mjs
+      - name: Verify montage handoff lifecycle
+        run: node --experimental-strip-types scripts/test-montage-handoff.mjs
 
   rust:
     runs-on: ubuntu-latest
