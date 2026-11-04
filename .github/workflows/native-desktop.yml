@@ -54,7 +54,8 @@ jobs:
             python3 \
             xvfb \
             xdotool \
-            imagemagick
+            imagemagick \
+            openbox
       - name: Verify native icons and Tauri metadata
         run: python3 scripts/check-native-assets.py
       - name: Install frontend dependencies
@@ -78,8 +79,15 @@ jobs:
           mkdir -p native-smoke
           timeout --signal=TERM --kill-after=5s 90s \
             xvfb-run -a -s "-screen 0 1440x900x24" \
-            python3 scripts/smoke-native-startup.py \
-              target/release/creator-os-desktop --output native-smoke --timeout 45
+            bash -euo pipefail -c '
+              openbox --sm-disable > native-smoke/window-manager.log 2>&1 &
+              wm_pid=$!
+              trap "kill $wm_pid 2>/dev/null || true; wait $wm_pid 2>/dev/null || true" EXIT
+              sleep 2
+              kill -0 "$wm_pid"
+              python3 scripts/smoke-native-startup.py \
+                target/release/creator-os-desktop --output native-smoke --timeout 45
+            '
       - name: Upload native startup logs and screenshot
         if: always()
         uses: actions/upload-artifact@v4
