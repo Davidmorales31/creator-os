@@ -99,7 +99,7 @@ def run(executable: Path, output: Path, timeout: int) -> None:
                     raise RuntimeError("Native X11 screenshot failed: " + capture.stderr.strip())
                 if not screenshot.is_file() or screenshot.stat().st_size < 1024:
                     raise RuntimeError("Native screenshot missing or unexpectedly small")
-                if screenshot.read_bytes()[:8] != b"\\x89PNG\\r\\n\\x1a\\n":
+                if screenshot.read_bytes()[:8] != bytes.fromhex("89504e470d0a1a0a"):
                     raise RuntimeError("Native screenshot is not a PNG")
                 report["result"] = "passed"
                 report["screenshot_bytes"] = screenshot.stat().st_size
