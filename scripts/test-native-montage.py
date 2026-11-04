@@ -43,7 +43,26 @@ def wait_revision(driver, project_id: str, revision: int, count: int | None = No
             return None
         return current
 
-    return wait_for(f"timeline revision > {revision}, clips={count}", check, timeout=18)
+    try:
+        return wait_for(f"timeline revision > {revision}, clips={count}", check, timeout=18)
+    except RuntimeError as error:
+        try:
+            state = driver.evaluate(
+                "return {alert:document.querySelector('.error-banner')?.textContent,"
+                "help:document.querySelector('.timeline-help')?.textContent,"
+                "selection:document.querySelector('.timeline-selection')?.textContent};"
+            )
+        except Exception:
+            state = "unable to read native DOM"
+        raise RuntimeError(f"{error}; UI state: {state}") from error
+
+
+def wait_ui_revision(driver, revision: int) -> None:
+    wait_for(f"React timeline revision {revision}", lambda: driver.evaluate(
+        "return document.querySelector('.timeline-help')"
+        "?.textContent.includes(arguments[0]) === true;",
+        f"Revisión {revision}.",
+    ), timeout=15)
 
 
 def press(driver, title: str) -> None:
@@ -146,6 +165,7 @@ def run(executable: Path, output: Path) -> None:
                 ), timeout=15)
                 press(driver, "Añadir el medio seleccionado a su pista")
                 current = wait_revision(driver, project_id, revision, count=len(current["clips"]) + 1)
+                wait_ui_revision(driver, current["revision"])
             clips = sorted(current["clips"], key=lambda c: c["startFrame"])
             if [c["assetId"] for c in clips] != [a["id"] for a in imported]:
                 raise RuntimeError("UI added clips in wrong source order")
@@ -164,19 +184,28 @@ def run(executable: Path, output: Path) -> None:
             )
             if not select:
                 raise RuntimeError("Could not select VP9 timeline clip")
+            wait_for("selected VP9 clip in React timeline", lambda: driver.evaluate(
+                "return document.querySelector('.timeline-selection')"
+                "?.textContent.includes(arguments[0]) === true;",
+                MEDIA_FILES[1][0],
+            ))
+            wait_ui_revision(driver, current["revision"])
             before_trim = current
             driver.click(".timeline-operations button:nth-of-type(5)")
             current = wait_revision(driver, project_id, before_trim["revision"], count=2)
+            wait_ui_revision(driver, current["revision"])
             if current["clips"][1]["durationFrames"] != clips[1]["durationFrames"] - project["settings"]["fps"]:
                 raise RuntimeError("VP9 tail trim did not remove one second")
             trimmed_revision = current["revision"]
             press(driver, "Deshacer último cambio")
             current = wait_revision(driver, project_id, trimmed_revision, count=2)
+            wait_ui_revision(driver, current["revision"])
             if current["clips"][1]["durationFrames"] != clips[1]["durationFrames"]:
                 raise RuntimeError("Undo failed to restore final clip")
             undo_revision = current["revision"]
             press(driver, "Rehacer último cambio")
             current = wait_revision(driver, project_id, undo_revision, count=2)
+            wait_ui_revision(driver, current["revision"])
             if current["clips"][1]["durationFrames"] != clips[1]["durationFrames"] - project["settings"]["fps"]:
                 raise RuntimeError("Redo failed to restore trim")
             report["steps"].append("native trim / undo / redo persisted in project manifest")
@@ -233,6 +262,7 @@ def run(executable: Path, output: Path) -> None:
             revision = current["revision"]
             press(driver, "Mover un segundo a la derecha")
             current = wait_revision(driver, project_id, revision, count=2)
+            wait_ui_revision(driver, current["revision"])
             driver.click("button[aria-label='Reproducir montaje']")
             wait_for("explicit timeline gap notice", lambda: driver.evaluate(
                 "return document.querySelector('.timeline-preview-notice')"
