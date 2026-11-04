@@ -2,7 +2,7 @@
 
 **Creator OS** es un editor de video de escritorio, *local-first* y open source, enfocado en flujos de trabajo de creadores de contenido.
 
-**Estado:** prototipo funcional con reproducción secuencial v0.12 y validaciones nativas Linux v0.13–v0.15 integradas en `main`. El siguiente issue planificado es v0.16 (#38); **no es todavía una versión de producción ni un instalador validado**. Las pruebas manuales multiplataforma siguen pendientes.
+**Estado:** prototipo funcional con reproducción secuencial v0.12 y validaciones nativas Linux v0.13–v0.15 integradas en `main`. Se está validando v0.16 (#38), reproducción del montaje con dos fuentes en el Tauri real; **no es todavía una versión de producción ni un instalador validado**. Las pruebas manuales multiplataforma siguen pendientes.
 
 ## Plan maestro y reutilización open source
 
@@ -54,7 +54,7 @@ Ver [Política de ramas](docs/development/BRANCH_POLICY.md), [Constitución](CON
 
 ### Prueba nativa
 
-El flujo [Native desktop build](.github/workflows/native-desktop.yml) compila el ejecutable Tauri en Linux y, desde v0.13, incluye un smoke test de **arranque real en Xvfb**, con captura y logs. Desde v0.14, CI valida creación y persistencia reales de proyectos con Tauri WebDriver sobre Linux. La v0.15 integra una prueba de importación FFprobe y reproducción VP8/VP9 en el WebView nativo. El smoke v0.13 **no certifica funciones de edición ni el comportamiento en Windows/macOS**. Ver [lista de aceptación nativa](docs/quality/NATIVE_ACCEPTANCE.md).
+El flujo [Native desktop build](.github/workflows/native-desktop.yml) compila el ejecutable Tauri en Linux y, desde v0.13, incluye un smoke test de **arranque real en Xvfb**, con captura y logs. Desde v0.14, CI valida creación y persistencia reales de proyectos con Tauri WebDriver sobre Linux. La v0.15 integra una prueba de importación FFprobe y reproducción VP8/VP9 en el WebView nativo. La v0.16 añade a CI pruebas de dos clips contiguos, undo/redo y cambio de fuente VP8→VP9 en un montaje real. El smoke v0.13 **no certifica funciones de edición ni el comportamiento en Windows/macOS**. Ver [lista de aceptación nativa](docs/quality/NATIVE_ACCEPTANCE.md).
 
 ## Licencia
 
