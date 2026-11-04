@@ -49,7 +49,7 @@ def wait_revision(driver, project_id: str, revision: int, count: int | None = No
         try:
             state = driver.evaluate(
                 "return {alert:document.querySelector('.error-banner')?.textContent,"
-                "help:document.querySelector('.timeline-help')?.textContent,"
+                "help:document.querySelector('.timeline-help[data-testid=timeline-revision]')?.textContent,"
                 "selection:document.querySelector('.timeline-selection')?.textContent};"
             )
         except Exception:
@@ -59,7 +59,7 @@ def wait_revision(driver, project_id: str, revision: int, count: int | None = No
 
 def wait_ui_revision(driver, revision: int) -> None:
     wait_for(f"React timeline revision {revision}", lambda: driver.evaluate(
-        "return document.querySelector('.timeline-help')"
+        "return document.querySelector('.timeline-help[data-testid=timeline-revision]')"
         "?.textContent.includes(arguments[0]) === true;",
         f"Revisión {revision}.",
     ), timeout=15)

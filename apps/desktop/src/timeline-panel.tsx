@@ -270,10 +270,10 @@ export function TimelinePanel({ projectId, fps, mediaAssets, selectedAsset, onEr
       <p className="timeline-preview-note">{montageSession
         ? `Reproduciendo clip ${montageSession.index + 1} de ${montageSession.plan.segments.length} · una pista de video, sin mezcla de audio externa.`
         : "Vista previa individual; «Reproducir montaje» encadena una sola pista continua de video."}</p>
-      <p id="timeline-shortcuts" className="timeline-help">Atajos con foco en el timeline: Ctrl/Cmd + Z deshacer · Ctrl/Cmd + Shift + Z rehacer · S dividir · Supr eliminar. No se aplican al escribir en campos.</p>
+      <p id="timeline-shortcuts" className="timeline-shortcuts-help">Atajos con foco en el timeline: Ctrl/Cmd + Z deshacer · Ctrl/Cmd + Shift + Z rehacer · S dividir · Supr eliminar. No se aplican al escribir en campos.</p>
       {!timeline ? <p className="timeline-help">Cargando timeline…</p> : timeline.clips.length === 0 ?
         <p className="timeline-help">Selecciona un video o audio de la biblioteca y pulsa “Añadir clip”. Los archivos originales no se modifican.</p> :
-        <p className="timeline-help">Selecciona un clip para moverlo, dividirlo o recortarlo. Los cambios se guardan en el proyecto. Revisión {timeline.revision}.</p>}
+        <p className="timeline-help" data-testid="timeline-revision">Selecciona un clip para moverlo, dividirlo o recortarlo. Los cambios se guardan en el proyecto. Revisión {timeline.revision}.</p>}
     </section>
   );
 }

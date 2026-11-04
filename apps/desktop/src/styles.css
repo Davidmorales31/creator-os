@@ -248,7 +248,7 @@ button.nav-item:hover:not(:disabled) { background: var(--creator-surface-raised)
 .timeline-clip-audio { border-color:var(--creator-success); background:var(--creator-success-subtle); }
 .timeline-clip-selected { box-shadow:var(--creator-focus-ring); }
 .timeline-playhead { position:absolute; top:0; bottom:0; width:2px; pointer-events:none; background:var(--creator-danger); opacity:.7; }
-.timeline-help { margin:var(--creator-space-2) 0 0; font-size:11px; color:var(--creator-text-tertiary); }
+.timeline-help, .timeline-shortcuts-help { margin:var(--creator-space-2) 0 0; font-size:11px; color:var(--creator-text-tertiary); }
 @media(max-width:800px){ .timeline-toolbar { align-items:flex-start; } .timeline-operations { overflow:auto; flex-wrap:nowrap; padding-bottom:var(--creator-space-2); } .timeline-operations button { flex-shrink:0; } }
 
 /* Local render operations — visually aligned with macOS-inspired Creator OS tokens. */
