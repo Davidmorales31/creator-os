@@ -163,6 +163,36 @@ pub fn edit_timeline(
 mod tests {
     use super::*;
     #[test]
+    fn native_edit_command_decodes_browser_camel_case_payload() {
+        let payload = serde_json::json!({
+            "action": "apply",
+            "operation": {
+                "type": "trimClip",
+                "clipId": "clip-1",
+                "startFrame": 120,
+                "sourceInFrame": 24,
+                "durationFrames": 96
+            }
+        });
+        let command: TimelineEdit = serde_json::from_value(payload)
+            .expect("UI native timeline command must decode without snake_case fields");
+        match command {
+            TimelineEdit::Apply {
+                operation: TimelineOperation::TrimClip {
+                    clip_id,
+                    start_frame,
+                    source_in_frame,
+                    duration_frames,
+                },
+            } => {
+                assert_eq!(clip_id, "clip-1");
+                assert_eq!((start_frame, source_in_frame, duration_frames), (120, 24, 96));
+            }
+            _ => panic!("expected a trim edit"),
+        }
+    }
+
+    #[test]
     fn errors_have_stable_codes() {
         let error = TimelineCommandError::from(TimelineError::Overlap);
         assert_eq!(error.code, "clip_overlap");
