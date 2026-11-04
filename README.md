@@ -2,7 +2,7 @@
 
 **Creator OS** es un editor de video de escritorio, *local-first* y open source, enfocado en flujos de trabajo de creadores de contenido.
 
-**Estado:** prototipo funcional v0.8 integrado en `main`; **no es todavía una versión de producción ni un instalador validado**. Pruebas nativas multiplataforma pendientes.
+**Estado:** prototipo funcional con reproducción secuencial multifuente v0.12 integrada en `main`. Validación de arranque nativo automatizada v0.13 en desarrollo; **no es todavía una versión de producción ni un instalador validado**. Pruebas funcionales nativas multiplataforma pendientes.
 
 ## Módulos implementados
 
@@ -14,6 +14,7 @@
 - Transcripción de segmentos temporizados con proveedor Python opcional `faster-whisper`, CPU-first, con consentimiento previo para descargar modelos.
 - Exportación de subtítulos SRT y WebVTT.
 - Previsualización CC sincronizada **con el medio original seleccionado**, no con el montaje del timeline.
+- Reproducción secuencial del montaje: transiciones multifuente protegidas frente a eventos obsoletos y seek confirmado; **no se garantiza continuidad frame-perfect**.
 
 ## Arquitectura
 
@@ -49,9 +50,8 @@ Ver [Política de ramas](docs/development/BRANCH_POLICY.md), [Constitución](CON
 
 ### Prueba nativa
 
-El flujo [Native desktop build](.github/workflows/native-desktop.yml) verifica la compilación real de Tauri en Linux, pero **no equivale** a verificar su funcionamiento en Windows/macOS ni a una prueba manual completa. Ver [lista de aceptación nativa](docs/quality/NATIVE_ACCEPTANCE.md).
+El flujo [Native desktop build](.github/workflows/native-desktop.yml) compila el ejecutable Tauri en Linux y, desde v0.13, incluye un smoke test de **arranque real en Xvfb**, con captura y logs. Este test **no certifica funciones de edición ni el comportamiento en Windows/macOS**. Ver [lista de aceptación nativa](docs/quality/NATIVE_ACCEPTANCE.md).
 
 ## Licencia
 
 MIT para código original de Creator OS, salvo indicación distinta. FFmpeg, Whisper y otros proveedores conservan sus respectivas licencias; hay requisitos específicos antes de distribuir binarios y modelos.
-
