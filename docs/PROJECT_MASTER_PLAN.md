@@ -52,6 +52,15 @@ The original GitHub repository was created as `Davidmorales31/creator-os`. The u
 - **Issue [#41](https://github.com/Davidmorales31/creator-os/issues/41) remains open**: the exact upstream GitHub repositories chosen by the owner have not been recovered. Candidate research must not be confused with prior approvals; do not replace functioning modules without the original plan and audit.
 - Manual native acceptance on Linux, Windows and macOS, end-user installers, render cancellation, multitrack compositing, and gapless/frame-perfect editing remain unverified.
 
+## v0.19 verified snapshot — 2026-11-06
+
+- [PR #52](https://github.com/Davidmorales31/creator-os/pull/52) merged and Issue #51 closed, release-testing milestone v0.19. Exact merge commit `08120e50e61244eeee2efef5dc62fec04276d27b`, with `main` and `develop` synchronized, zero open PRs **at time of verification**.
+- [CI](https://github.com/Davidmorales31/creator-os/actions/runs/42234728299), [native Tauri/WebKitGTK cancellation](https://github.com/Davidmorales31/creator-os/actions/runs/42234728507) and [visual review](https://github.com/Davidmorales31/creator-os/actions/runs/42234728340) all passed. Real FFmpeg jobs were cancelled twice, with no orphan process/MP4, typed `export_busy`, new export started after cancellation and SHA-256 originals unchanged.
+- Rust CI's Linux APT setup is now bounded and skips installed dependencies; native smoke captures actual painted UI. Green Linux CI is not general Windows/macOS or installer acceptance.
+- [Ten-step roadmap #60](https://github.com/Davidmorales31/creator-os/issues/60) created and steps 1–2 completed. [Legacy issue audit #53](https://github.com/Davidmorales31/creator-os/issues/53) started; its original issues remain open until every acceptance criterion is checked.
+- [Upstream recovery #41](https://github.com/Davidmorales31/creator-os/issues/41) **still pending**; exact original repo shortlist is unknown. New subsystem additions must not pretend exploratory candidates are approved. Test-only/quality changes to current Creator OS code may continue.
+- Later open steps: GTK chooser #54, montage captions #55 (blocked by #41), interrupted-export recovery #56, Linux distribution #57, Windows #58, macOS #59.
+
 **This snapshot is not a promise that those refs/issues remain unchanged. Check GitHub.**
 
 ## Required reconciliation when original plan arrives

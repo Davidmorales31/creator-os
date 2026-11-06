@@ -1,6 +1,6 @@
 # ADR-0019 — Native FFmpeg cancellation and job recovery regression
 
-- Status: Proposed — requires CI pass and native artifact evidence before acceptance
+- Status: Accepted — real native Linux FFmpeg cancellation evidence reviewed
 - Date: 2026-11-06
 - Issue: #51
 - Depends on: ADR-0018 (real Tauri FFmpeg MP4 export), existing Rust ExportManager
@@ -31,4 +31,8 @@ A stable read-only `data-export-job-id` attribute on the existing export status 
 
 ## Acceptance evidence
 
-Pending actual PR CI, real native screenshots and JSON result. Do not change status to Accepted until reviewed.
+Accepted on 2026-11-06 after integrating [PR #52](https://github.com/Davidmorales31/creator-os/pull/52), closing [Issue #51](https://github.com/Davidmorales31/creator-os/issues/51) and synchronizing `main` and `develop` at `08120e50e61244eeee2efef5dc62fec04276d27b`.
+
+The exact PR head `b7cb3f4d82edc631b82ffd0cdb281ae41fe9c534` passed [frontend/Rust/Python CI](https://github.com/Davidmorales31/creator-os/actions/runs/42234728299), [real Linux Tauri/WebKitGTK native checks](https://github.com/Davidmorales31/creator-os/actions/runs/42234728507) and [visual review](https://github.com/Davidmorales31/creator-os/actions/runs/42234728340). The inspected [cancellation artifact](https://github.com/Davidmorales31/creator-os/actions/runs/42234728507/artifacts/13510699916) contains `result.json` with `passed` and four native screenshots. It confirmed a live FFmpeg process at Rust/UI `running`, typed `export_busy`, **two actual cancellations** at about 6.5% progress, no residual FFmpeg process, no partial/final MP4, both Rust jobs reporting `cancelled` with null output and original media SHA-256 unchanged.
+
+The CI Rust setup was hardened to skip already installed Tauri packages and bound APT time; the native smoke waits for actual painted WebKitGTK content rather than accepting a blank window. Tests still require real native UI and actual FFmpeg. This acceptance **does not** prove crash-recovery (tracked separately in [#56](https://github.com/Davidmorales31/creator-os/issues/56)), cross-platform behavior, codecs outside the synthetic fixtures, signed distributions or frame-perfect output.
