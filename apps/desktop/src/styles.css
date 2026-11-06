@@ -221,6 +221,7 @@ button.nav-item:hover:not(:disabled) { background: var(--creator-surface-raised)
 
 /* Issue #4: functional non-destructive timeline; all visual colors are design tokens. */
 .timeline-live { margin-top:var(--creator-space-2); padding:var(--creator-space-2); overflow:hidden; }
+.timeline-live:focus-visible { outline:none; box-shadow:var(--creator-focus-ring); }
 .timeline-toolbar { display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:var(--creator-space-2); }
 .timeline-toolbar h2 { display:flex; align-items:center; gap:12px; font-size:16px; }
 .timeline-count { font-size:11px; font-weight:500; color:var(--creator-text-secondary); }
@@ -247,7 +248,7 @@ button.nav-item:hover:not(:disabled) { background: var(--creator-surface-raised)
 .timeline-clip-audio { border-color:var(--creator-success); background:var(--creator-success-subtle); }
 .timeline-clip-selected { box-shadow:var(--creator-focus-ring); }
 .timeline-playhead { position:absolute; top:0; bottom:0; width:2px; pointer-events:none; background:var(--creator-danger); opacity:.7; }
-.timeline-help { margin:var(--creator-space-2) 0 0; font-size:11px; color:var(--creator-text-tertiary); }
+.timeline-help, .timeline-shortcuts-help { margin:var(--creator-space-2) 0 0; font-size:11px; color:var(--creator-text-tertiary); }
 @media(max-width:800px){ .timeline-toolbar { align-items:flex-start; } .timeline-operations { overflow:auto; flex-wrap:nowrap; padding-bottom:var(--creator-space-2); } .timeline-operations button { flex-shrink:0; } }
 
 /* Local render operations — visually aligned with macOS-inspired Creator OS tokens. */

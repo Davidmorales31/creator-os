@@ -49,7 +49,7 @@ def wait_revision(driver, project_id: str, revision: int, count: int | None = No
         try:
             state = driver.evaluate(
                 "return {alert:document.querySelector('.error-banner')?.textContent,"
-                "help:document.querySelector('.timeline-help')?.textContent,"
+                "help:document.querySelector('.timeline-help[data-testid=timeline-revision]')?.textContent,"
                 "selection:document.querySelector('.timeline-selection')?.textContent};"
             )
         except Exception:
@@ -59,7 +59,7 @@ def wait_revision(driver, project_id: str, revision: int, count: int | None = No
 
 def wait_ui_revision(driver, revision: int) -> None:
     wait_for(f"React timeline revision {revision}", lambda: driver.evaluate(
-        "return document.querySelector('.timeline-help')"
+        "return document.querySelector('.timeline-help[data-testid=timeline-revision]')"
         "?.textContent.includes(arguments[0]) === true;",
         f"Revisión {revision}.",
     ), timeout=15)
@@ -67,6 +67,23 @@ def wait_ui_revision(driver, revision: int) -> None:
 
 def press(driver, title: str) -> None:
     driver.click(f"button[title='{title}']")
+
+
+def native_keyboard_shortcut(driver, *keys: str) -> None:
+    # Real W3C WebDriver input events (not synthetic JavaScript KeyboardEvents).
+    # The timeline itself must hold focus for the shortcut to be scoped correctly.
+    focused = driver.evaluate(
+        "var section=document.querySelector('.timeline-live');"
+        "section?.focus();return document.activeElement===section;"
+    )
+    if not focused:
+        raise RuntimeError("Native timeline did not accept keyboard focus")
+    actions = [{"type": "keyDown", "value": key} for key in keys]
+    actions.extend({"type": "keyUp", "value": key} for key in reversed(keys))
+    driver.request("POST", driver.path("/actions"), {
+        "actions": [{"type": "key", "id": "timeline-shortcuts", "actions": actions}],
+    })
+    driver.request("DELETE", driver.path("/actions"))
 
 
 def assert_integrity(paths: list[Path], hashes: dict[str, str], manifest: Path) -> None:
@@ -274,6 +291,63 @@ def run(executable: Path, output: Path) -> None:
             press(driver, "Deshacer último cambio")
             current = wait_revision(driver, project_id, revision, count=2)
             report["steps"].append("invalid-gap montage rejected; undo restored contiguous project")
+            wait_ui_revision(driver, current["revision"])
+
+            # Native key actions hit the actual React-focused timeline. Rust remains
+            # responsible for revisions, persistence, undo and redo.
+            revision = current["revision"]
+            native_keyboard_shortcut(driver, chr(0xE009), "z")
+            current = wait_revision(driver, project_id, revision, count=2)
+            wait_ui_revision(driver, current["revision"])
+            if current["clips"][1]["durationFrames"] != clips[1]["durationFrames"]:
+                raise RuntimeError("Ctrl+Z did not undo the native VP9 trim")
+            revision = current["revision"]
+            native_keyboard_shortcut(driver, chr(0xE009), chr(0xE008), "z")
+            current = wait_revision(driver, project_id, revision, count=2)
+            wait_ui_revision(driver, current["revision"])
+            if current["clips"][1]["durationFrames"] != clips[1]["durationFrames"] - project["settings"]["fps"]:
+                raise RuntimeError("Ctrl+Shift+Z did not redo native VP9 trim")
+
+            selected = driver.evaluate(
+                "var b=[...document.querySelectorAll('button.timeline-clip')]"
+                ".find(x=>x.title===arguments[0]);"
+                "if(!b)return false;b.click();return true;",
+                MEDIA_FILES[1][0],
+            )
+            if not selected:
+                raise RuntimeError("Could not select native clip for shortcuts")
+            wait_for("VP9 selected for keyboard operation", lambda: driver.evaluate(
+                "return document.querySelector('.timeline-selection')"
+                "?.textContent.includes(arguments[0])===true;", MEDIA_FILES[1][0],
+            ))
+            revision = current["revision"]
+            native_keyboard_shortcut(driver, "s")
+            current = wait_revision(driver, project_id, revision, count=3)
+            wait_ui_revision(driver, current["revision"])
+            revision = current["revision"]
+            native_keyboard_shortcut(driver, chr(0xE009), "z")
+            current = wait_revision(driver, project_id, revision, count=2)
+            wait_ui_revision(driver, current["revision"])
+
+            # Deleting the selected clip must be reversible, even using keyboard.
+            selected = driver.evaluate(
+                "var b=[...document.querySelectorAll('button.timeline-clip')]"
+                ".find(x=>x.title===arguments[0]);"
+                "if(!b)return false;b.click();return true;",
+                MEDIA_FILES[1][0],
+            )
+            if not selected:
+                raise RuntimeError("Cannot reselect VP9 clip for keyboard delete")
+            revision = current["revision"]
+            native_keyboard_shortcut(driver, chr(0xE017))
+            current = wait_revision(driver, project_id, revision, count=1)
+            wait_ui_revision(driver, current["revision"])
+            revision = current["revision"]
+            native_keyboard_shortcut(driver, chr(0xE009), "z")
+            current = wait_revision(driver, project_id, revision, count=2)
+            wait_ui_revision(driver, current["revision"])
+            report["steps"].append("real WebDriver Ctrl+Z/Shift+Z, S, Delete and undo preserve Rust timeline")
+            driver.screenshot(output / "03-keyboard-edits-dark.png")
             assert_integrity(sources, original_hashes, manifest)
             report["source_sha256_unchanged"] = True
             report["project_revision"] = current["revision"]
