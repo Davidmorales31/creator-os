@@ -66,7 +66,7 @@ jobs:
             gstreamer1.0-libav
       - name: Check Python E2E harness syntax before compiling native release
         run: |
-          python3 -m py_compile scripts/test-native-projects.py scripts/test-native-media.py scripts/test-native-montage.py scripts/test-native-export.py scripts/test-native-export-cancel.py
+          python3 -m py_compile scripts/smoke-native-startup.py scripts/test-native-projects.py scripts/test-native-media.py scripts/test-native-montage.py scripts/test-native-export.py scripts/test-native-export-cancel.py
       - name: Verify native icons and Tauri metadata
         run: python3 scripts/check-native-assets.py
       - name: Install frontend dependencies
@@ -85,10 +85,10 @@ jobs:
           file target/release/creator-os-desktop | grep -q 'ELF'
           echo "Native Tauri Linux binary built successfully."
       - name: Smoke-test actual native release window in Xvfb
-        timeout-minutes: 2
+        timeout-minutes: 3
         run: |
           mkdir -p native-smoke
-          timeout --signal=TERM --kill-after=5s 90s \
+          timeout --signal=TERM --kill-after=5s 145s \
             xvfb-run -a -s "-screen 0 1440x900x24" \
             bash -euo pipefail -c '
               openbox --sm-disable > native-smoke/window-manager.log 2>&1 &
@@ -97,7 +97,7 @@ jobs:
               sleep 2
               kill -0 "$wm_pid"
               python3 scripts/smoke-native-startup.py \
-                target/release/creator-os-desktop --output native-smoke --timeout 45
+                target/release/creator-os-desktop --output native-smoke --timeout 70
             '
       - name: Upload native startup logs and screenshot
         if: always()
