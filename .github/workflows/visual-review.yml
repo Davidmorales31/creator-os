@@ -36,9 +36,15 @@ jobs:
             /tmp/creator-os-visual/node_modules/.bin/playwright install chromium
           fi
       - name: Generate browser media fixture
+        timeout-minutes: 4
         run: |
-          sudo apt-get update
-          sudo apt-get install -y ffmpeg
+          # Hosted Ubuntu images frequently already include FFmpeg. Avoid a
+          # redundant network apt update that can hang the visual review.
+          if ! command -v ffmpeg >/dev/null 2>&1; then
+            timeout --signal=TERM --kill-after=5s 90s sudo apt-get update -o Acquire::Retries=1
+            timeout --signal=TERM --kill-after=5s 90s sudo apt-get install -y ffmpeg
+          fi
+          ffmpeg -hide_banner -version | head -n 1
           mkdir -p apps/desktop/public
           ffmpeg -hide_banner -loglevel error -f lavfi -i testsrc2=size=480x270:rate=24 -t 6 -c:v libvpx -deadline realtime -cpu-used 8 -an -y apps/desktop/public/preview.webm
           ffmpeg -hide_banner -loglevel error -f lavfi -i color=c=blue:size=480x270:rate=24 -t 6 -c:v libvpx-vp9 -deadline realtime -cpu-used 8 -an -y apps/desktop/public/preview-next.webm
