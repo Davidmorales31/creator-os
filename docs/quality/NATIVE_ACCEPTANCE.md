@@ -1,4 +1,4 @@
-# Creator OS — Native desktop acceptance checklist (v0.18)
+# Creator OS — Native desktop acceptance checklist (v0.19)
 
 This page is a release gate and **must not be marked complete by browser screenshots alone**.
 
@@ -46,6 +46,14 @@ CI produces two tiny synthetic VP8/VP9 WebM sources in isolated HOME/XDG storage
 
 The test uploads JSON, logs and native before/after screenshots, not the generated MP4 or source videos. Cancellation, multitrack audio/video, a user-operated GTK file chooser, gapless/frame-perfect edits, signed installers and Windows/macOS acceptance **remain unverified**.
 
+## Native FFmpeg cancellation and recovery regression (v0.19, CI acceptance pending)
+
+The [native cancellation test](../../scripts/test-native-export-cancel.py) reuses the same release Tauri ELF, `test-native-export.py` project/import/timeline helpers, WebKitGTK/tauri-driver, FFmpeg and typed `get_export_status`/`start_export`/`cancel_export` commands. The real UI creates and cancels jobs. The additional `data-export-job-id` is a stable, non-sensitive DOM attribute on the export status element; it is **not** a job-status mock.
+
+A test-only wrapper invokes the **real system FFmpeg binary** with `-re` before inputs, giving the runner a deterministic window for an active render. The script requires a **real FFmpeg PID in Linux /proc** with the unique partial output path, a matching Rust `running` job and native `Renderizando` UI status before clicking `Cancelar`. It also checks `export_busy` for a concurrent start, waits for `cancelled` in Rust and native UI, checks that FFmpeg terminated, no completed or partial MP4 remains, and starts and cancels another export to prove the lock was released. SHA-256 of source files and original import catalog are checked. Synthetic sources, exported files and wrapper are created only under temporary HOME/XDG storage; artifacts contain JSON/logs/screenshots, **never media files**.
+
+A green Linux CI run validates this bounded cancellation path only. It does **not** prove cancellation across all codecs, worker starvation, app crashes, Windows/macOS, signed installers, multitrack exports or gapless rendering. Manual OS acceptance remains pending.
+
 ## Automated evidence matrix
 
 | Validation | Linux CI | Windows | macOS |
@@ -58,6 +66,7 @@ The test uploads JSON, logs and native before/after screenshots, not the generat
 | Native WebKit montage: UI two clips, trim/undo/redo, VP8→VP9 handoff, stop and gap error | Workflow required since v0.16 | Not tested | Not tested |
 | Timeline keyboard shortcuts with native W3C key actions and persisted Rust undo/redo | Workflow required since v0.17 | Not tested | Not tested |
 | Native FFmpeg/FFprobe MP4 output: VP8+VP9 to H.264/AAC, dimensions/FPS/duration, SHA-256 | Workflow required since v0.18 | Not tested | Not tested |
+| Native in-progress FFmpeg cancellation, export_busy, process/partial cleanup and recovery | Workflow required since v0.19 | Not tested | Not tested |
 
 Results are **required checks**, not marked passed until a given workflow run succeeds.
 
@@ -100,6 +109,7 @@ xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-projects.py t
 xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-media.py target/release/creator-os-desktop
 xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-montage.py target/release/creator-os-desktop
 xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-export.py target/release/creator-os-desktop
+xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-export-cancel.py target/release/creator-os-desktop
 ```
 
 Start a window manager inside the virtual display before running E2E, as done in CI. Neither test substitutes for a manual cross-platform review.
@@ -108,4 +118,4 @@ Start a window manager inside the virtual display before running E2E, as done in
 
 No paid APIs, cloud inference, runtime dependencies, FFmpeg/model bundles or user media are introduced. GitHub Actions runner minutes and artifact storage still have costs. Signing, proprietary codec/redistribution and trademark checks remain separate approvals.
 
-See [ADR-0010](../adr/0010-native-release-gate.md), [ADR-0014](../adr/0014-native-startup-smoke.md), [ADR-0015](../adr/0015-native-webdriver-project-e2e.md), [ADR-0016](../adr/0016-native-media-e2e.md) [ADR-0017](../adr/0017-native-montage-e2e.md) and [ADR-0018](../adr/0018-native-mp4-export-e2e.md).
+See [ADR-0010](../adr/0010-native-release-gate.md), [ADR-0014](../adr/0014-native-startup-smoke.md), [ADR-0015](../adr/0015-native-webdriver-project-e2e.md), [ADR-0016](../adr/0016-native-media-e2e.md) [ADR-0017](../adr/0017-native-montage-e2e.md) and [ADR-0018](../adr/0018-native-mp4-export-e2e.md) and [ADR-0019](../adr/0019-native-ffmpeg-cancel-e2e.md).

@@ -102,30 +102,51 @@ def run(executable: Path, output: Path, timeout: int) -> None:
                 if focus.returncode != 0:
                     raise RuntimeError("Cannot activate native window: " + focus.stderr.strip())
                 time.sleep(1)
-                capture = command("import", "-window", "root", str(desktop_screenshot))
-                if capture.returncode != 0:
-                    raise RuntimeError("Native X11 desktop screenshot failed: " + capture.stderr.strip())
-                if not desktop_screenshot.is_file():
-                    raise RuntimeError("Native X11 desktop screenshot is missing")
                 if x < 0 or y < 0 or x + width > 1440 or y + height > 900:
                     raise RuntimeError(f"Native window is outside CI capture screen: {x},{y} {width}x{height}")
-                cropped = command(
-                    "convert", str(desktop_screenshot), "-crop", f"{width}x{height}+{x}+{y}",
-                    "+repage", str(screenshot),
-                )
-                if cropped.returncode != 0:
-                    raise RuntimeError("Cropping native screenshot failed: " + cropped.stderr.strip())
-                if not screenshot.is_file() or screenshot.stat().st_size < 1024:
-                    raise RuntimeError("Native screenshot is blank or unexpectedly small")
-                if screenshot.read_bytes()[:8] != bytes.fromhex("89504e470d0a1a0a"):
-                    raise RuntimeError("Native screenshot is not a PNG")
-                unique = command("identify", "-format", "%k", str(screenshot))
-                if unique.returncode != 0:
-                    raise RuntimeError("Cannot inspect native screenshot colors: " + unique.stderr.strip())
-                color_count = int(unique.stdout.strip())
+                # WebKitGTK can show a white window while the webview finishes
+                # painting under slow Xvfb/CI runners. Re-capture the *real*
+                # framebuffer until it has actual UI content. Never accept a
+                # blank frame, and never synthesize pixels or use a browser mock.
+                paint_deadline = time.monotonic() + 40
+                color_count = 0
+                attempts = 0
+                while time.monotonic() < paint_deadline:
+                    if process.poll() is not None:
+                        raise RuntimeError(
+                            f"Native app exited while painting (code {process.returncode})"
+                        )
+                    attempts += 1
+                    capture = command("import", "-window", "root", str(desktop_screenshot))
+                    if capture.returncode != 0:
+                        raise RuntimeError(
+                            "Native X11 desktop screenshot failed: " + capture.stderr.strip()
+                        )
+                    if not desktop_screenshot.is_file():
+                        raise RuntimeError("Native X11 desktop screenshot is missing")
+                    cropped = command(
+                        "convert", str(desktop_screenshot), "-crop",
+                        f"{width}x{height}+{x}+{y}", "+repage", str(screenshot),
+                    )
+                    if cropped.returncode != 0:
+                        raise RuntimeError("Cropping native screenshot failed: " + cropped.stderr.strip())
+                    if not screenshot.is_file() or screenshot.stat().st_size < 1024:
+                        raise RuntimeError("Native screenshot is blank or unexpectedly small")
+                    if screenshot.read_bytes()[:8] != bytes.fromhex("89504e470d0a1a0a"):
+                        raise RuntimeError("Native screenshot is not a PNG")
+                    unique = command("identify", "-format", "%k", str(screenshot))
+                    if unique.returncode != 0:
+                        raise RuntimeError("Cannot inspect native screenshot colors: " + unique.stderr.strip())
+                    color_count = int(unique.stdout.strip())
+                    if color_count >= 20:
+                        break
+                    time.sleep(2)
                 report["screenshot_colors"] = color_count
+                report["paint_capture_attempts"] = attempts
                 if color_count < 20:
-                    raise RuntimeError(f"Native screenshot appears blank: only {color_count} colors")
+                    raise RuntimeError(
+                        f"Native webview never painted real content: {color_count} colors after {attempts} captures"
+                    )
                 report["result"] = "passed"
                 report["screenshot_bytes"] = screenshot.stat().st_size
                 print(f"Native Tauri startup smoke passed: Creator OS window {width}x{height}")
