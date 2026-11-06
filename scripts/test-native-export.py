@@ -30,7 +30,7 @@ PROJECT_NAME = "Creator OS Native MP4 Export E2E"
 SOURCE_NAMES = (("render-source-vp8.webm", "vp8"), ("render-source-vp9.webm", "vp9"))
 
 
-def generate_short_sources(sources: Path, log: Path) -> list[Path]:
+def generate_short_sources(sources: Path, log: Path, duration_seconds: int = 2) -> list[Path]:
     sources.mkdir(parents=True)
     paths: list[Path] = []
     with log.open("w", encoding="utf-8") as output:
@@ -40,7 +40,7 @@ def generate_short_sources(sources: Path, log: Path) -> list[Path]:
             args = [
                 "ffmpeg", "-nostdin", "-hide_banner", "-loglevel", "error", "-y",
                 "-f", "lavfi", "-i", f"color=c={color}:s=320x180:r=30",
-                "-t", "2", "-an",
+                "-t", str(duration_seconds), "-an",
                 "-c:v", "libvpx" if codec == "vp8" else "libvpx-vp9",
                 "-deadline", "realtime", "-cpu-used", "8",
                 str(path),
@@ -85,7 +85,7 @@ def wait_ui_revision(driver, revision: int):
 def native_export_state(driver):
     return driver.evaluate(
         "var panel=document.querySelector('.export-panel');"
-        "return {status:panel?.querySelector('.export-progress-caption strong')?.textContent??null,"
+        "return {jobId:panel?.querySelector('.export-progress')?.dataset.exportJobId??null,status:panel?.querySelector('.export-progress-caption strong')?.textContent??null,"
         "progress:panel?.querySelector('progress')?.value??null,"
         "error:panel?.querySelector('.export-error')?.textContent??null,"
         "output:panel?.querySelector('.export-output-path')?.textContent??null};",

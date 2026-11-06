@@ -81,7 +81,7 @@ export function ExportPanel({ projectId }: Props) {
         </div>
       </div>
       {job && (
-        <div className="export-progress" role="status" aria-live="polite">
+        <div className="export-progress" role="status" aria-live="polite" data-export-job-id={job.id}>
           <div className="export-progress-caption"><strong>{labels[job.status]}</strong><span>{progress}%</span></div>
           <progress max={100} value={progress} aria-label="Progreso del render" />
           {job.status === "completed" && job.outputPath && <p className="export-output-path">Guardado en: <strong>{job.outputPath}</strong></p>}
