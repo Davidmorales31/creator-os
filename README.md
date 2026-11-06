@@ -2,7 +2,7 @@
 
 **Creator OS** es un editor de video de escritorio, *local-first* y open source, enfocado en flujos de trabajo de creadores de contenido.
 
-**Estado:** prototipo funcional con reproducción secuencial v0.12 y validaciones nativas Linux v0.13–v0.16 integradas en `main`. La v0.16 valida el montaje de dos clips VP8→VP9 y corrige la compatibilidad de comandos de edición TypeScript/Rust. **No es todavía una versión de producción ni un instalador validado**: las pruebas manuales multiplataforma siguen pendientes. Antes de crear nuevos módulos, resolver el [Issue #41](https://github.com/Davidmorales31/creator-os/issues/41) de integración open source.
+**Estado:** prototipo funcional con reproducción secuencial v0.12 y validaciones nativas Linux v0.13–v0.17 integradas en `main`. La v0.17 incorpora atajos de edición contextualizados con E2E nativo. La v0.18 añade en `develop` validación de exportación MP4 real con FFmpeg sin añadir otro renderizador. **No es todavía una versión de producción ni un instalador validado**: la aceptación manual multiplataforma sigue pendiente. El [Issue #41](https://github.com/Davidmorales31/creator-os/issues/41) sigue abierto para la integración open source de módulos futuros.
 
 ## Plan maestro y reutilización open source
 
@@ -54,7 +54,7 @@ Ver [Política de ramas](docs/development/BRANCH_POLICY.md), [Constitución](CON
 
 ### Prueba nativa
 
-El flujo [Native desktop build](.github/workflows/native-desktop.yml) compila el ejecutable Tauri en Linux y, desde v0.13, incluye un smoke test de **arranque real en Xvfb**, con captura y logs. Desde v0.14, CI valida creación y persistencia reales de proyectos con Tauri WebDriver sobre Linux. La v0.15 integra una prueba de importación FFprobe y reproducción VP8/VP9 en el WebView nativo. La v0.16 añade a CI pruebas de dos clips contiguos, undo/redo y cambio de fuente VP8→VP9 en un montaje real. La v0.17 añade atajos de edición focalizados al timeline y comprueba operaciones de teclado en el mismo E2E nativo. El smoke v0.13 **no certifica funciones de edición ni el comportamiento en Windows/macOS**. Ver [lista de aceptación nativa](docs/quality/NATIVE_ACCEPTANCE.md).
+El flujo [Native desktop build](.github/workflows/native-desktop.yml) compila el ejecutable Tauri en Linux y, desde v0.13, incluye un smoke test de **arranque real en Xvfb**, con captura y logs. Desde v0.14, CI valida creación y persistencia reales de proyectos con Tauri WebDriver sobre Linux. La v0.15 integra una prueba de importación FFprobe y reproducción VP8/VP9 en el WebView nativo. La v0.16 añade a CI pruebas de dos clips contiguos, undo/redo y cambio de fuente VP8→VP9 en un montaje real. La v0.17 añade atajos de edición focalizados al timeline y comprueba operaciones de teclado en el mismo E2E nativo. La v0.18 añade un E2E de exportación MP4 H.264/AAC utilizando los comandos reales de Tauri, FFmpeg y FFprobe, con fuentes intactas. El smoke v0.13 **no certifica funciones de edición ni el comportamiento en Windows/macOS**. Ver [lista de aceptación nativa](docs/quality/NATIVE_ACCEPTANCE.md).
 
 ## Licencia
 
