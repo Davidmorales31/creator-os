@@ -1,4 +1,4 @@
-# Creator OS — Native desktop acceptance checklist (v0.17)
+# Creator OS — Native desktop acceptance checklist (v0.18)
 
 This page is a release gate and **must not be marked complete by browser screenshots alone**.
 
@@ -38,6 +38,14 @@ The existing timeline accepts keyboard shortcuts **only while keyboard focus is 
 
 [Node shortcut tests](../../scripts/test-timeline-shortcuts.mjs) verify mapping and exclusions. The [real native montage E2E](../../scripts/test-native-montage.py) now also delivers W3C WebDriver keyboard actions into the **focused Tauri WebKitGTK** timeline, then checks Rust timeline revisions and undo/redo persistence after each edit. It never fakes DOM `KeyboardEvent` instances. A green run validates this bounded Linux path, not universal keyboard accessibility.
 
+## Real native MP4 export E2E (v0.18)
+
+The [MP4 native export E2E](../../scripts/test-native-export.py) reuses the same **real Tauri release ELF**, Tauri/WebKitGTK WebDriver, existing typed `start_export`/`get_export_status` Rust commands and `export_adapter` FFmpeg backend; no mock, new render engine, runtime dependency, downloaded model or cloud service is used.
+
+CI produces two tiny synthetic VP8/VP9 WebM sources in isolated HOME/XDG storage, creates a project via UI, verifies `empty_timeline` as a typed error, imports both sources through the real native command bridge (the GTK chooser is still out of scope), adds **two contiguous clips by actual UI buttons**, and starts `Exportar MP4` via the actual native UI. It waits for completion and verifies the typed Rust job `completed` at progress 1.0 with the same output path. Independent FFprobe checks H.264, AAC (including silence for video-only inputs), yuv420p, target dimensions/fps and duration bounded to the timeline. SHA-256 of the original files remains unchanged. No partial MP4 may remain, and exactly one MP4 is expected.
+
+The test uploads JSON, logs and native before/after screenshots, not the generated MP4 or source videos. Cancellation, multitrack audio/video, a user-operated GTK file chooser, gapless/frame-perfect edits, signed installers and Windows/macOS acceptance **remain unverified**.
+
 ## Automated evidence matrix
 
 | Validation | Linux CI | Windows | macOS |
@@ -49,6 +57,7 @@ The existing timeline accepts keyboard shortcuts **only while keyboard focus is 
 | Native FFprobe/bridge: real VP8/VP9 import, metadata, preview/playback, SHA-256 | Workflow required since v0.15 | Not tested | Not tested |
 | Native WebKit montage: UI two clips, trim/undo/redo, VP8→VP9 handoff, stop and gap error | Workflow required since v0.16 | Not tested | Not tested |
 | Timeline keyboard shortcuts with native W3C key actions and persisted Rust undo/redo | Workflow required since v0.17 | Not tested | Not tested |
+| Native FFmpeg/FFprobe MP4 output: VP8+VP9 to H.264/AAC, dimensions/FPS/duration, SHA-256 | Workflow required since v0.18 | Not tested | Not tested |
 
 Results are **required checks**, not marked passed until a given workflow run succeeds.
 
@@ -90,6 +99,7 @@ The headless smoke command requires Linux `xvfb`, `xdotool`, Openbox, ImageMagic
 xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-projects.py target/release/creator-os-desktop
 xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-media.py target/release/creator-os-desktop
 xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-montage.py target/release/creator-os-desktop
+xvfb-run -a -s "-screen 0 1440x900x24" python3 scripts/test-native-export.py target/release/creator-os-desktop
 ```
 
 Start a window manager inside the virtual display before running E2E, as done in CI. Neither test substitutes for a manual cross-platform review.
@@ -98,4 +108,4 @@ Start a window manager inside the virtual display before running E2E, as done in
 
 No paid APIs, cloud inference, runtime dependencies, FFmpeg/model bundles or user media are introduced. GitHub Actions runner minutes and artifact storage still have costs. Signing, proprietary codec/redistribution and trademark checks remain separate approvals.
 
-See [ADR-0010](../adr/0010-native-release-gate.md), [ADR-0014](../adr/0014-native-startup-smoke.md), [ADR-0015](../adr/0015-native-webdriver-project-e2e.md), [ADR-0016](../adr/0016-native-media-e2e.md) and [ADR-0017](../adr/0017-native-montage-e2e.md).
+See [ADR-0010](../adr/0010-native-release-gate.md), [ADR-0014](../adr/0014-native-startup-smoke.md), [ADR-0015](../adr/0015-native-webdriver-project-e2e.md), [ADR-0016](../adr/0016-native-media-e2e.md) [ADR-0017](../adr/0017-native-montage-e2e.md) and [ADR-0018](../adr/0018-native-mp4-export-e2e.md).
