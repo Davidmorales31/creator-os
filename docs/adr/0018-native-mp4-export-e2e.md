@@ -1,6 +1,6 @@
 # ADR-0018 — Real native FFmpeg MP4 export regression on Linux
 
-- Status: Proposed — CI and output evidence required before acceptance
+- Status: Accepted — Linux native export and FFprobe evidence reviewed
 - Date: 2026-11-06
 - Issue: #47
 - Depends on: ADR-0017 and the existing render-core/export adapter
@@ -26,4 +26,8 @@ All sources, exported files and XDG application data are ephemeral. Store only s
 
 ## Acceptance record
 
-Pending completion of PR CI and review of native output evidence. Preserve this section as a dated addendum when accepted.
+**Accepted 2026-11-06.** [Issue #47](https://github.com/Davidmorales31/creator-os/issues/47) and [PR #48](https://github.com/Davidmorales31/creator-os/pull/48) were merged into `main` at `54d0335abe21bc40cd7dab218666bcf362752071` after successful [frontend/Rust/Python CI](https://github.com/Davidmorales31/creator-os/actions/runs/42223830589) and [real Tauri Linux WebKitGTK E2E](https://github.com/Davidmorales31/creator-os/actions/runs/42223830662). The inspected [native export artifact](https://github.com/Davidmorales31/creator-os/actions/runs/42223830662/artifacts/13505156996) contains `result.json` (`passed`) and native before/after screenshots and logs.
+
+The real UI produced exactly one MP4, independently measured by FFprobe as **H.264/yuv420p, AAC, 1920×1080, 30 FPS, 4.0 seconds, 50,704 bytes** from local short VP8 and VP9 fixtures. A typed `empty_timeline` error was confirmed before the timeline was created. The actual Rust job reported `completed`, `progress=1.0`, and the same final output path as the UI and file system. No `.partial.mp4` remained; source SHA-256 checksums were unchanged and no sources were duplicated. The E2E runs without media uploads, new runtime dependencies or a new rendering backend.
+
+**Scope remains restricted** to a continuous single video track and this Linux CI pathway. Cancellation, independent audio tracks, frame-perfect/gapless rendering, file-dialog UI acceptance, Windows/macOS and installer signing were **not** tested. The missing historical owner-approved upstream list remains tracked in [#41](https://github.com/Davidmorales31/creator-os/issues/41).

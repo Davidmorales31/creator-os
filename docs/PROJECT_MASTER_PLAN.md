@@ -44,6 +44,14 @@ The original GitHub repository was created as `Davidmorales31/creator-os`. The u
 - Issue [#41](https://github.com/Davidmorales31/creator-os/issues/41) remains **open**: recover the owner's original selected open-source GitHub repositories and audit integration/licensing before new product modules.
 - Important remaining gates: native manual acceptance on Linux/Windows/macOS; external upstream shortlist and integration plan; no frame-perfect/gapless guarantee or release installers.
 
+## Updated snapshot confirmed on 2026-11-06
+
+- **v0.17** Issue [#45](https://github.com/Davidmorales31/creator-os/issues/45) / [PR #46](https://github.com/Davidmorales31/creator-os/pull/46) merged at `7d13dd768290fff8ae085f3d48f3a4ede602f694`: focused timeline keyboard shortcuts with native WebDriver E2E.
+- **v0.18** Issue [#47](https://github.com/Davidmorales31/creator-os/issues/47) / [PR #48](https://github.com/Davidmorales31/creator-os/pull/48) merged at `54d0335abe21bc40cd7dab218666bcf362752071`: real Tauri FFmpeg MP4 export E2E on Linux. Independent FFprobe H.264/AAC, 1920×1080, 30 FPS, 4.0 seconds, unchanged source SHA-256, no partial files. [CI](https://github.com/Davidmorales31/creator-os/actions/runs/42223830589) and [native E2E](https://github.com/Davidmorales31/creator-os/actions/runs/42223830662) passed.
+- `main` and `develop` synchronized at `54d0335abe21bc40cd7dab218666bcf362752071` after PR #48. **Historical snapshot only — always check live GitHub.**
+- **Issue [#41](https://github.com/Davidmorales31/creator-os/issues/41) remains open**: the exact upstream GitHub repositories chosen by the owner have not been recovered. Candidate research must not be confused with prior approvals; do not replace functioning modules without the original plan and audit.
+- Manual native acceptance on Linux, Windows and macOS, end-user installers, render cancellation, multitrack compositing, and gapless/frame-perfect editing remain unverified.
+
 **This snapshot is not a promise that those refs/issues remain unchanged. Check GitHub.**
 
 ## Required reconciliation when original plan arrives
